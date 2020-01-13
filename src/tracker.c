@@ -213,9 +213,9 @@ main (int argc, char *argv[], char *envp[])
   fprintf (output, "%s: starting to trace '", program_name);
   for (int i = 0; i < exec_argc - 1; i++)
     {
-      fprintf (stdout, "%s ", exec_argv[i]);
+      fprintf (output, "%s ", exec_argv[i]);
     }
-  fprintf (stdout, "%s'\n\n", exec_argv[exec_argc - 1]);
+  fprintf (output, "%s'\n\n", exec_argv[exec_argc - 1]);
 
   /* Forking and tracing */
   pid_t child = fork ();
@@ -291,7 +291,7 @@ main (int argc, char *argv[], char *envp[])
 
       /* Printing instruction pointer */
       ip = get_current_ip (&regs);
-      fprintf (stdout, "0x%" PRIxPTR "  ", ip);
+      fprintf (output, "0x%" PRIxPTR "  ", ip);
 
       /* Get the opcode from memory */
       for (size_t i = 0; i < MAX_OPCODE_BYTES; i += 8)
@@ -306,18 +306,18 @@ main (int argc, char *argv[], char *envp[])
 	{
 	  /* Display the bytes */
 	  for (size_t i = 0; i < insn[0].size; i++)
-	    fprintf (stdout, " %02x", buf[i]);
+	    fprintf (output, " %02x", buf[i]);
 
 	  /* Pretty printing and formating */
 	  if (insn[0].size != 8 && insn[0].size != 11)
-	    fprintf (stdout, "\t");
+	    fprintf (output, "\t");
 
 	  for (int i = 0; i < 4 - (insn[0].size / 3); i++)
-	    fprintf (stdout, "\t");
+	    fprintf (output, "\t");
 
 	  /* Display mnemonic and operand */
-	  fprintf (stdout, "%s  %s", insn[0].mnemonic, insn[0].op_str);
-	  fprintf(stdout, "\n");
+	  fprintf (output, "%s  %s", insn[0].mnemonic, insn[0].op_str);
+	  fprintf(output, "\n");
 
 	  /* Create the instr_t structure */
 	  instr_t *instr = instr_new (ip, insn[0].size, buf);
@@ -338,7 +338,7 @@ main (int argc, char *argv[], char *envp[])
       while (ptrace(PTRACE_SINGLESTEP, child, NULL, NULL));
     }
 
-  fprintf(stdout,
+  fprintf(output,
 	  "\n"
 	  "\tStatistics about this run\n"
 	  "\t=========================\n"
