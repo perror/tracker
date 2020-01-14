@@ -19,7 +19,6 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 #include <unistd.h>
 
 #include <err.h>
@@ -64,10 +63,10 @@ static arch_t
 check_execfile (char *execfilename)
 {
   struct stat exec_stats;
-  if (stat(execfilename, &exec_stats) == -1)
+  if (stat (execfilename, &exec_stats) == -1)
     err (EXIT_FAILURE, "error: '%s'", execfilename);
 
-  if (!S_ISREG(exec_stats.st_mode) || !(exec_stats.st_mode & S_IXUSR))
+  if (!S_ISREG (exec_stats.st_mode) || !(exec_stats.st_mode & S_IXUSR))
     errx (EXIT_FAILURE, "error: '%s' is not an executable file", execfilename);
 
   /* Check if given file is an executable and discover its architecture */
@@ -85,7 +84,7 @@ check_execfile (char *execfilename)
     errx (EXIT_FAILURE, "error: '%s' is not an ELF binary", execfilename);
 
   /* Extract executable architecture (byte at 0x12) */
-  fseek(execfile, 0x12, SEEK_SET);
+  fseek (execfile, 0x12, SEEK_SET);
   if (fread (&buf, 1, 1, execfile) != 1)
     errx (EXIT_FAILURE, "error: cannot read '%s'", execfilename);
 
@@ -105,7 +104,7 @@ check_execfile (char *execfilename)
     }
 
   /* Closing file after verifications */
-  fclose(execfile);
+  fclose (execfile);
 
   return exec_arch;
 }
@@ -167,7 +166,7 @@ main (int argc, char *argv[], char *envp[])
       case 'o':         /* Output file */
         output = fopen (optarg, "we");
         if (!output)
-	  err (EXIT_FAILURE, "error: cannot open file '%s'", optarg);
+	  			err (EXIT_FAILURE, "error: cannot open file '%s'", optarg);
         break;
 
       case 'i':         /* intel syntax mode */
@@ -185,8 +184,7 @@ main (int argc, char *argv[], char *envp[])
       case 'V':         /* Display version number and exit */
         fprintf (stdout, "%s %s\n",
                  program_name, VERSION);
-        fputs ("Trace the execution of a program on the given input\n",
-               stdout);
+        fputs ("Trace the execution of a program on the given input\n", stdout);
         exit (EXIT_SUCCESS);
         break;
 
@@ -212,7 +210,9 @@ main (int argc, char *argv[], char *envp[])
   char str[MAX_LEN];
 	while (fgets (str, MAX_LEN, input) != NULL)
 		nb_line++;
-	rewind(input);
+	rewind (input);
+	trace_t *traces[nb_line];
+	int index_trace = 0;
 
 	while (fgets (str, MAX_LEN, input) != NULL)
 		{
@@ -225,7 +225,7 @@ main (int argc, char *argv[], char *envp[])
 			int index = 0;
 			while (token != NULL)
 				{
-					size_t token_length = strlen(token);
+					size_t token_length = strlen (token);
 					if (token[token_length - 1] == '\n')
 						token[token_length - 1] = '\0'; /* Formating trick */
 					exec_argv[index] = token;
@@ -258,7 +258,7 @@ main (int argc, char *argv[], char *envp[])
 		      personality (ADDR_NO_RANDOMIZE);
 
 		      /* Start tracing the process */
-		      if (ptrace(PTRACE_TRACEME, 0, NULL, NULL) == -1)
+		      if (ptrace (PTRACE_TRACEME, 0, NULL, NULL) == -1)
 						errx (EXIT_FAILURE,
 			      			"error: cannot operate from inside a ptrace() call!");
 
@@ -294,14 +294,14 @@ main (int argc, char *argv[], char *envp[])
 		    }
 
 		  /* Initialize the assembly decoder */
-		  if (cs_open(CS_ARCH_X86, exec_mode, &handle) != CS_ERR_OK)
+		  if (cs_open (CS_ARCH_X86, exec_mode, &handle) != CS_ERR_OK)
 		    errx (EXIT_FAILURE, "error: cannot start capstone disassembler");
 
 		  /* Set syntax flavor output */
 		  if (intel)
-		    cs_option(handle, CS_OPT_SYNTAX, CS_OPT_SYNTAX_INTEL);
+		    cs_option (handle, CS_OPT_SYNTAX, CS_OPT_SYNTAX_INTEL);
 		  else
-		    cs_option(handle, CS_OPT_SYNTAX, CS_OPT_SYNTAX_ATT);
+		    cs_option (handle, CS_OPT_SYNTAX, CS_OPT_SYNTAX_ATT);
 
 		  /* Main disassembling loop */
 		  size_t instr_count = 0;
@@ -309,15 +309,17 @@ main (int argc, char *argv[], char *envp[])
 		  if (ht == NULL)
 		    err (EXIT_FAILURE, "error: cannot create hashtable");
 
+			trace_t *t = NULL;
+
 		  while (true)
 		    {
 		      /* Waiting for child process */
-		      wait(&status);
-		      if (WIFEXITED(status))
+		      wait (&status);
+		      if (WIFEXITED (status))
 						break;
 
 		      /* Get instruction pointer */
-		      ptrace(PTRACE_GETREGS, child, NULL, &regs);
+		      ptrace (PTRACE_GETREGS, child, NULL, &regs);
 
 		      /* Printing instruction pointer */
 		      ip = get_current_ip (&regs);
@@ -331,7 +333,7 @@ main (int argc, char *argv[], char *envp[])
 						}
 
 		      /* Get the mnemonic from decoder */
-		      count = cs_disasm(handle, &(buf[0]), MAX_OPCODE_BYTES, 0x1000, 0, &insn);
+		      count = cs_disasm (handle, &(buf[0]), MAX_OPCODE_BYTES, 0x1000, 0, &insn);
 		      if (count > 0)
 						{
 			  			/* Display the bytes */
@@ -347,12 +349,29 @@ main (int argc, char *argv[], char *envp[])
 
 			  			/* Display mnemonic and operand */
 			  			fprintf (output, "%s  %s", insn[0].mnemonic, insn[0].op_str);
-			  			fprintf(output, "\n");
+			  			fprintf (output, "\n");
 
 			  			/* Create the instr_t structure */
 			  			instr_t *instr = instr_new (ip, insn[0].size, buf);
 			  			if (!instr)
-			    			err (EXIT_FAILURE, "error:");
+			    			err (EXIT_FAILURE, "error: cannot create instruction");
+
+							if (!t)
+								{
+									/* Create a new trace and store it */
+									t = trace_new (hash_instr (instr));
+									if (!t)
+										err (EXIT_FAILURE, "error: cannot create trace");
+									traces[index_trace] = t;
+								}
+							else
+								{
+									/* Insert a new element in the trace and update t to hold
+									 * the new tail */
+									t = trace_insert (t, hash_instr (instr));
+									if (!t)
+										err (EXIT_FAILURE, "error: cannot create trace");
+								}
 
 			  			if (!hashtable_insert (ht, instr))
 			    			instr_delete (instr);
@@ -380,7 +399,14 @@ main (int argc, char *argv[], char *envp[])
 			  (size_t) DEFAULT_HASHTABLE_SIZE, hashtable_collisions (ht));
 
 		  hashtable_delete (ht);
+
+			index_trace++;
 		}
+
+	fclose(input);
+
+	for (int i = 0; i < nb_line; i++)
+		trace_delete (traces[i]);
 
   return EXIT_SUCCESS;
 }
