@@ -19,6 +19,7 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
 
 #include <err.h>
@@ -48,10 +49,15 @@ typedef enum
 /* In amd64, maximum bytes for an opcode is 15 */
 #define MAX_OPCODE_BYTES 16
 
+/* Maximum length of a line in input */
+#define MAX_LEN 1024
+
 /* Global variables for this module */
 static bool debug = false;      /* 'debug' option flag */
 static bool verbose = false;    /* 'verbose' option flag */
 static FILE *output = NULL;     /* output file (default: stdout) */
+/* input file containing executable's name and argument */
+static FILE *input = NULL;
 
 /* Get the architecture of the executable */
 static arch_t
@@ -198,158 +204,183 @@ main (int argc, char *argv[], char *envp[])
     errx (EXIT_FAILURE, "error: missing argument: an executable is required!");
 
   /* Extracting the complete argc/argv[] of the traced command */
-  int exec_argc = argc - optind;
-  char *exec_argv[exec_argc + 1];
-  for (int i = 0; i < exec_argc; i++)
-    {
-      exec_argv[i] = argv[optind + i];
-    }
-  exec_argv[exec_argc] = NULL;
+	input = fopen (argv[optind], "r");
+  if (input == NULL)
+    errx (EXIT_FAILURE, "error: can't open the input file");
 
-  /* Perfom various checks on the executable file */
-  arch_t exec_arch = check_execfile (exec_argv[0]);
+	int nb_line = 0;
+  char str[MAX_LEN];
+	while (fgets (str, MAX_LEN, input) != NULL)
+		nb_line++;
+	rewind(input);
 
-  /* Display the traced command */
-  fprintf (output, "%s: starting to trace '", program_name);
-  for (int i = 0; i < exec_argc - 1; i++)
-    {
-      fprintf (output, "%s ", exec_argv[i]);
-    }
-  fprintf (output, "%s'\n\n", exec_argv[exec_argc - 1]);
+	while (fgets (str, MAX_LEN, input) != NULL)
+		{
+			if (str[0] == '\n')
+				break;
 
-  /* Forking and tracing */
-  pid_t child = fork ();
-  if (child == -1)
-    errx (EXIT_FAILURE, "error: fork failed!");
+			size_t line_length = strlen (str);
+			char *exec_argv[line_length];
+			char *token = strtok (str, " ");
+			int index = 0;
+			while (token != NULL)
+				{
+					size_t token_length = strlen(token);
+					if (token[token_length - 1] == '\n')
+						token[token_length - 1] = '\0'; /* Formating trick */
+					exec_argv[index] = token;
+					index++;
+					token = strtok (NULL, " ");
+				}
+			exec_argv[index] = NULL;
+			int exec_argc = index;
 
-  /* Initialized and start the child */
-  if (child == 0)
-    {
-      /* Disabling ASLR */
-      personality (ADDR_NO_RANDOMIZE);
+		  /* Perfom various checks on the executable file */
+		  arch_t exec_arch = check_execfile (exec_argv[0]);
 
-      /* Start tracing the process */
-      if (ptrace(PTRACE_TRACEME, 0, NULL, NULL) == -1)
-	errx (EXIT_FAILURE,
-	      "error: cannot operate from inside a ptrace() call!");
+		  /* Display the traced command */
+		  fprintf (output, "%s: starting to trace '", program_name);
+		  for (int i = 0; i < exec_argc - 1; i++)
+		    {
+		      fprintf (output, "%s ", exec_argv[i]);
+		    }
+		  fprintf (output, "%s'\n\n", exec_argv[exec_argc - 1]);
 
-      /* Starting the traced executable */
-      execve (exec_argv[0], exec_argv, envp);
-    }
+		  /* Forking and tracing */
+		  pid_t child = fork ();
+		  if (child == -1)
+		    errx (EXIT_FAILURE, "error: fork failed!");
 
-  /* Parent process */
-  int status;
-  byte_t buf[MAX_OPCODE_BYTES];
-  uintptr_t ip;
-  struct user_regs_struct regs;
+		  /* Initialized and start the child */
+		  if (child == 0)
+		    {
+		      /* Disabling ASLR */
+		      personality (ADDR_NO_RANDOMIZE);
 
-  /* Initializing Capstone disassembler */
-  csh handle;
-  cs_insn *insn;
-  size_t count;
+		      /* Start tracing the process */
+		      if (ptrace(PTRACE_TRACEME, 0, NULL, NULL) == -1)
+						errx (EXIT_FAILURE,
+			      			"error: cannot operate from inside a ptrace() call!");
 
-  cs_mode exec_mode = 0;
-  switch (exec_arch)
-    {
-    case x86_32_arch:
-      exec_mode = CS_MODE_32;
-      break;
+		      /* Starting the traced executable */
+		      execve (exec_argv[0], exec_argv, envp);
+		    }
 
-    case x86_64_arch:
-      exec_mode = CS_MODE_64;
-      break;
+		  /* Parent process */
+		  int status;
+		  byte_t buf[MAX_OPCODE_BYTES];
+		  uintptr_t ip;
+		  struct user_regs_struct regs;
 
-    default:
-      errx (EXIT_FAILURE, "error: '%s' unsupported architecture", exec_argv[0]);
-    }
+		  /* Initializing Capstone disassembler */
+		  csh handle;
+		  cs_insn *insn;
+		  size_t count;
 
-  /* Initialize the assembly decoder */
-  if (cs_open(CS_ARCH_X86, exec_mode, &handle) != CS_ERR_OK)
-    errx (EXIT_FAILURE, "error: cannot start capstone disassembler");
+		  cs_mode exec_mode = 0;
+		  switch (exec_arch)
+		    {
+		    case x86_32_arch:
+		      exec_mode = CS_MODE_32;
+		      break;
 
-  /* Set syntax flavor output */
-  if (intel)
-    cs_option(handle, CS_OPT_SYNTAX, CS_OPT_SYNTAX_INTEL);
-  else
-    cs_option(handle, CS_OPT_SYNTAX, CS_OPT_SYNTAX_ATT);
+		    case x86_64_arch:
+		      exec_mode = CS_MODE_64;
+		      break;
 
-  /* Main disassembling loop */
-  size_t instr_count = 0;
-  hashtable_t *ht = hashtable_new (DEFAULT_HASHTABLE_SIZE);
-  if (ht == NULL)
-    err (EXIT_FAILURE, "error: cannot create hashtable");
+		    default:
+		      errx (EXIT_FAILURE,
+								"error: '%s' unsupported architecture", exec_argv[0]);
+		    }
 
-  while (true)
-    {
-      /* Waiting for child process */
-      wait(&status);
-      if (WIFEXITED(status))
-	break;
+		  /* Initialize the assembly decoder */
+		  if (cs_open(CS_ARCH_X86, exec_mode, &handle) != CS_ERR_OK)
+		    errx (EXIT_FAILURE, "error: cannot start capstone disassembler");
 
-      /* Get instruction pointer */
-      ptrace(PTRACE_GETREGS, child, NULL, &regs);
+		  /* Set syntax flavor output */
+		  if (intel)
+		    cs_option(handle, CS_OPT_SYNTAX, CS_OPT_SYNTAX_INTEL);
+		  else
+		    cs_option(handle, CS_OPT_SYNTAX, CS_OPT_SYNTAX_ATT);
 
-      /* Printing instruction pointer */
-      ip = get_current_ip (&regs);
-      fprintf (output, "0x%" PRIxPTR "  ", ip);
+		  /* Main disassembling loop */
+		  size_t instr_count = 0;
+		  hashtable_t *ht = hashtable_new (DEFAULT_HASHTABLE_SIZE);
+		  if (ht == NULL)
+		    err (EXIT_FAILURE, "error: cannot create hashtable");
 
-      /* Get the opcode from memory */
-      for (size_t i = 0; i < MAX_OPCODE_BYTES; i += 8)
-	{
-	  long *ptr = (long *) &(buf[i]);
-	  *ptr = ptrace (PTRACE_PEEKDATA, child, ip + i, NULL);
-	}
+		  while (true)
+		    {
+		      /* Waiting for child process */
+		      wait(&status);
+		      if (WIFEXITED(status))
+						break;
 
-      /* Get the mnemonic from decoder */
-      count = cs_disasm(handle, &(buf[0]), MAX_OPCODE_BYTES, 0x1000, 0, &insn);
-      if (count > 0)
-	{
-	  /* Display the bytes */
-	  for (size_t i = 0; i < insn[0].size; i++)
-	    fprintf (output, " %02x", buf[i]);
+		      /* Get instruction pointer */
+		      ptrace(PTRACE_GETREGS, child, NULL, &regs);
 
-	  /* Pretty printing and formating */
-	  if (insn[0].size != 8 && insn[0].size != 11)
-	    fprintf (output, "\t");
+		      /* Printing instruction pointer */
+		      ip = get_current_ip (&regs);
+		      fprintf (output, "0x%" PRIxPTR "  ", ip);
 
-	  for (int i = 0; i < 4 - (insn[0].size / 3); i++)
-	    fprintf (output, "\t");
+		      /* Get the opcode from memory */
+		      for (size_t i = 0; i < MAX_OPCODE_BYTES; i += 8)
+						{
+			  			long *ptr = (long *) &(buf[i]);
+			  			*ptr = ptrace (PTRACE_PEEKDATA, child, ip + i, NULL);
+						}
 
-	  /* Display mnemonic and operand */
-	  fprintf (output, "%s  %s", insn[0].mnemonic, insn[0].op_str);
-	  fprintf(output, "\n");
+		      /* Get the mnemonic from decoder */
+		      count = cs_disasm(handle, &(buf[0]), MAX_OPCODE_BYTES, 0x1000, 0, &insn);
+		      if (count > 0)
+						{
+			  			/* Display the bytes */
+			  			for (size_t i = 0; i < insn[0].size; i++)
+			    		fprintf (output, " %02x", buf[i]);
 
-	  /* Create the instr_t structure */
-	  instr_t *instr = instr_new (ip, insn[0].size, buf);
-	  if (!instr)
-	    err (EXIT_FAILURE, "error:");
+			  			/* Pretty printing and formating */
+			  			if (insn[0].size != 8 && insn[0].size != 11)
+			    			fprintf (output, "\t");
 
-	  if (!hashtable_insert (ht, instr))
-	    instr_delete (instr);
+			  			for (int i = 0; i < 4 - (insn[0].size / 3); i++)
+			    			fprintf (output, "\t");
 
-	  /* Updating counters */
-	  instr_count++;
-	}
+			  			/* Display mnemonic and operand */
+			  			fprintf (output, "%s  %s", insn[0].mnemonic, insn[0].op_str);
+			  			fprintf(output, "\n");
 
-      /* Continue to next instruction... */
-      /* Note that, sometimes, ptrace(PTRACE_SINGLESTEP) returns '-1'
-       * to notify that the child process did not respond quick enough,
-       * we have to wait for ptrace() to return '0'. */
-      while (ptrace(PTRACE_SINGLESTEP, child, NULL, NULL));
-    }
+			  			/* Create the instr_t structure */
+			  			instr_t *instr = instr_new (ip, insn[0].size, buf);
+			  			if (!instr)
+			    			err (EXIT_FAILURE, "error:");
 
-  fprintf(output,
-	  "\n"
-	  "\tStatistics about this run\n"
-	  "\t=========================\n"
-	  "* #instructions executed: %zu\n"
-	  "* #unique instructions:   %zu\n"
-	  "* #hashtable buckets:     %zu\n"
-	  "* #hashtable collisions:  %zu\n",
-	  instr_count, hashtable_entries (ht),
-	  (size_t) DEFAULT_HASHTABLE_SIZE, hashtable_collisions (ht));
+			  			if (!hashtable_insert (ht, instr))
+			    			instr_delete (instr);
 
-  hashtable_delete (ht);
+			  			/* Updating counters */
+			  			instr_count++;
+						}
+
+		      /* Continue to next instruction... */
+		      /* Note that, sometimes, ptrace(PTRACE_SINGLESTEP) returns '-1'
+		       * to notify that the child process did not respond quick enough,
+		       * we have to wait for ptrace() to return '0'. */
+		      while (ptrace(PTRACE_SINGLESTEP, child, NULL, NULL));
+		    }
+
+		  fprintf(output,
+			  "\n"
+			  "\tStatistics about this run\n"
+			  "\t=========================\n"
+			  "* #instructions executed: %zu\n"
+			  "* #unique instructions:   %zu\n"
+			  "* #hashtable buckets:     %zu\n"
+			  "* #hashtable collisions:  %zu\n\n\n",
+			  instr_count, hashtable_entries (ht),
+			  (size_t) DEFAULT_HASHTABLE_SIZE, hashtable_collisions (ht));
+
+		  hashtable_delete (ht);
+		}
 
   return EXIT_SUCCESS;
 }
