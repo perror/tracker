@@ -238,3 +238,67 @@ hashtable_collisions (hashtable_t *ht)
 {
   return ht->collisions;
 }
+
+struct _trace_t
+{
+	uint64_t h; /* Index for the hash value of the instruction */
+	trace_t *next; /* Pointer to the next value in the list */
+};
+
+trace_t *
+trace_new (uint64_t hash_index)
+{
+	trace_t *t = malloc (sizeof (trace_t));
+	if (!t)
+		return NULL;
+	t->h = hash_index;
+	t->next = NULL;
+	return t;
+}
+
+trace_t *
+trace_insert (trace_t *t, uint64_t hash_index)
+{
+	if (!t)
+		return NULL;
+	trace_t *new = trace_new (hash_index);
+	if (!new)
+		return NULL;
+	if (t->next)
+		new->next = t->next;
+	t->next = new;
+	return new;
+}
+
+void
+trace_delete (trace_t *t)
+{
+	if (!t)
+		return;
+	trace_t *tmp = t;
+	while (tmp->next)
+		{
+			tmp = tmp->next;
+			free(t);
+			t = tmp;
+		}
+	free(t);
+	return;
+}
+
+trace_t *
+trace_compare (trace_t *t1, trace_t *t2)
+{
+	trace_t *tmp1 = t1;
+	trace_t *tmp2 = t2;
+	while (tmp1->h == tmp2->h)
+		{
+			tmp1 = tmp1->next;
+			tmp2 = tmp2->next;
+			if (!tmp1)
+				return tmp2;
+			if (!tmp2)
+				return NULL;
+		}
+		return tmp2;
+}
