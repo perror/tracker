@@ -209,198 +209,201 @@ main (int argc, char *argv[], char *envp[])
 	int nb_line = 0;
   char str[MAX_LEN];
 	while (fgets (str, MAX_LEN, input) != NULL)
-		nb_line++;
+    {
+			if (str[0] != '\n')
+				nb_line++;
+		}
 	rewind (input);
 	trace_t *traces[nb_line];
 	int index_trace = 0;
 
 	while (fgets (str, MAX_LEN, input) != NULL)
 		{
-			if (str[0] == '\n')
-				break;
-
-			size_t line_length = strlen (str);
-			char *exec_argv[line_length];
-			char *token = strtok (str, " ");
-			int index = 0;
-			while (token != NULL)
+			if (str[0] != '\n')
 				{
-					size_t token_length = strlen (token);
-					if (token[token_length - 1] == '\n')
-						token[token_length - 1] = '\0'; /* Formating trick */
-					exec_argv[index] = token;
-					index++;
-					token = strtok (NULL, " ");
+					size_t line_length = strlen (str);
+					char *exec_argv[line_length];
+					char *token = strtok (str, " ");
+					int index = 0;
+					while (token != NULL)
+						{
+							size_t token_length = strlen (token);
+							if (token[token_length - 1] == '\n')
+								token[token_length - 1] = '\0'; /* Formating trick */
+							exec_argv[index] = token;
+							index++;
+							token = strtok (NULL, " ");
+						}
+					exec_argv[index] = NULL;
+					int exec_argc = index;
+
+				  /* Perfom various checks on the executable file */
+				  arch_t exec_arch = check_execfile (exec_argv[0]);
+
+				  /* Display the traced command */
+				  fprintf (output, "%s: starting to trace '", program_name);
+				  for (int i = 0; i < exec_argc - 1; i++)
+				    {
+				      fprintf (output, "%s ", exec_argv[i]);
+				    }
+				  fprintf (output, "%s'\n\n", exec_argv[exec_argc - 1]);
+
+				  /* Forking and tracing */
+				  pid_t child = fork ();
+				  if (child == -1)
+				    errx (EXIT_FAILURE, "error: fork failed!");
+
+				  /* Initialized and start the child */
+				  if (child == 0)
+				    {
+				      /* Disabling ASLR */
+				      personality (ADDR_NO_RANDOMIZE);
+
+				      /* Start tracing the process */
+				      if (ptrace (PTRACE_TRACEME, 0, NULL, NULL) == -1)
+								errx (EXIT_FAILURE,
+					      			"error: cannot operate from inside a ptrace() call!");
+
+				      /* Starting the traced executable */
+				      execve (exec_argv[0], exec_argv, envp);
+				    }
+
+				  /* Parent process */
+				  int status;
+				  byte_t buf[MAX_OPCODE_BYTES];
+				  uintptr_t ip;
+				  struct user_regs_struct regs;
+
+				  /* Initializing Capstone disassembler */
+				  csh handle;
+				  cs_insn *insn;
+				  size_t count;
+
+				  cs_mode exec_mode = 0;
+				  switch (exec_arch)
+				    {
+				    case x86_32_arch:
+				      exec_mode = CS_MODE_32;
+				      break;
+
+				    case x86_64_arch:
+				      exec_mode = CS_MODE_64;
+				      break;
+
+				    default:
+				      errx (EXIT_FAILURE,
+										"error: '%s' unsupported architecture", exec_argv[0]);
+				    }
+
+				  /* Initialize the assembly decoder */
+				  if (cs_open (CS_ARCH_X86, exec_mode, &handle) != CS_ERR_OK)
+				    errx (EXIT_FAILURE, "error: cannot start capstone disassembler");
+
+				  /* Set syntax flavor output */
+				  if (intel)
+				    cs_option (handle, CS_OPT_SYNTAX, CS_OPT_SYNTAX_INTEL);
+				  else
+				    cs_option (handle, CS_OPT_SYNTAX, CS_OPT_SYNTAX_ATT);
+
+				  /* Main disassembling loop */
+				  size_t instr_count = 0;
+				  hashtable_t *ht = hashtable_new (DEFAULT_HASHTABLE_SIZE);
+				  if (ht == NULL)
+				    err (EXIT_FAILURE, "error: cannot create hashtable");
+
+					trace_t *t = NULL;
+
+				  while (true)
+				    {
+				      /* Waiting for child process */
+				      wait (&status);
+				      if (WIFEXITED (status))
+								break;
+
+				      /* Get instruction pointer */
+				      ptrace (PTRACE_GETREGS, child, NULL, &regs);
+
+				      /* Printing instruction pointer */
+				      ip = get_current_ip (&regs);
+				      fprintf (output, "0x%" PRIxPTR "  ", ip);
+
+				      /* Get the opcode from memory */
+				      for (size_t i = 0; i < MAX_OPCODE_BYTES; i += 8)
+								{
+					  			long *ptr = (long *) &(buf[i]);
+					  			*ptr = ptrace (PTRACE_PEEKDATA, child, ip + i, NULL);
+								}
+
+				      /* Get the mnemonic from decoder */
+				      count = cs_disasm (handle, &(buf[0]), MAX_OPCODE_BYTES, 0x1000, 0, &insn);
+				      if (count > 0)
+								{
+					  			/* Display the bytes */
+					  			for (size_t i = 0; i < insn[0].size; i++)
+					    		fprintf (output, " %02x", buf[i]);
+
+					  			/* Pretty printing and formating */
+					  			if (insn[0].size != 8 && insn[0].size != 11)
+					    			fprintf (output, "\t");
+
+					  			for (int i = 0; i < 4 - (insn[0].size / 3); i++)
+					    			fprintf (output, "\t");
+
+					  			/* Display mnemonic and operand */
+					  			fprintf (output, "%s  %s", insn[0].mnemonic, insn[0].op_str);
+					  			fprintf (output, "\n");
+
+					  			/* Create the instr_t structure */
+					  			instr_t *instr = instr_new (ip, insn[0].size, buf);
+					  			if (!instr)
+					    			err (EXIT_FAILURE, "error: cannot create instruction");
+
+									if (!t)
+										{
+											/* Create a new trace and store it */
+											t = trace_new (hash_instr (instr));
+											if (!t)
+												err (EXIT_FAILURE, "error: cannot create trace");
+											traces[index_trace] = t;
+										}
+									else
+										{
+											/* Insert a new element in the trace and update t to hold
+											 * the new tail */
+											t = trace_insert (t, hash_instr (instr));
+											if (!t)
+												err (EXIT_FAILURE, "error: cannot create trace");
+										}
+
+					  			if (!hashtable_insert (ht, instr))
+					    			instr_delete (instr);
+
+					  			/* Updating counters */
+					  			instr_count++;
+								}
+
+				      /* Continue to next instruction... */
+				      /* Note that, sometimes, ptrace(PTRACE_SINGLESTEP) returns '-1'
+				       * to notify that the child process did not respond quick enough,
+				       * we have to wait for ptrace() to return '0'. */
+				      while (ptrace(PTRACE_SINGLESTEP, child, NULL, NULL));
+				    }
+
+				  fprintf(output,
+					  "\n"
+					  "\tStatistics about this run\n"
+					  "\t=========================\n"
+					  "* #instructions executed: %zu\n"
+					  "* #unique instructions:   %zu\n"
+					  "* #hashtable buckets:     %zu\n"
+					  "* #hashtable collisions:  %zu\n\n\n",
+					  instr_count, hashtable_entries (ht),
+					  (size_t) DEFAULT_HASHTABLE_SIZE, hashtable_collisions (ht));
+
+				  hashtable_delete (ht);
+
+					index_trace++;
 				}
-			exec_argv[index] = NULL;
-			int exec_argc = index;
-
-		  /* Perfom various checks on the executable file */
-		  arch_t exec_arch = check_execfile (exec_argv[0]);
-
-		  /* Display the traced command */
-		  fprintf (output, "%s: starting to trace '", program_name);
-		  for (int i = 0; i < exec_argc - 1; i++)
-		    {
-		      fprintf (output, "%s ", exec_argv[i]);
-		    }
-		  fprintf (output, "%s'\n\n", exec_argv[exec_argc - 1]);
-
-		  /* Forking and tracing */
-		  pid_t child = fork ();
-		  if (child == -1)
-		    errx (EXIT_FAILURE, "error: fork failed!");
-
-		  /* Initialized and start the child */
-		  if (child == 0)
-		    {
-		      /* Disabling ASLR */
-		      personality (ADDR_NO_RANDOMIZE);
-
-		      /* Start tracing the process */
-		      if (ptrace (PTRACE_TRACEME, 0, NULL, NULL) == -1)
-						errx (EXIT_FAILURE,
-			      			"error: cannot operate from inside a ptrace() call!");
-
-		      /* Starting the traced executable */
-		      execve (exec_argv[0], exec_argv, envp);
-		    }
-
-		  /* Parent process */
-		  int status;
-		  byte_t buf[MAX_OPCODE_BYTES];
-		  uintptr_t ip;
-		  struct user_regs_struct regs;
-
-		  /* Initializing Capstone disassembler */
-		  csh handle;
-		  cs_insn *insn;
-		  size_t count;
-
-		  cs_mode exec_mode = 0;
-		  switch (exec_arch)
-		    {
-		    case x86_32_arch:
-		      exec_mode = CS_MODE_32;
-		      break;
-
-		    case x86_64_arch:
-		      exec_mode = CS_MODE_64;
-		      break;
-
-		    default:
-		      errx (EXIT_FAILURE,
-								"error: '%s' unsupported architecture", exec_argv[0]);
-		    }
-
-		  /* Initialize the assembly decoder */
-		  if (cs_open (CS_ARCH_X86, exec_mode, &handle) != CS_ERR_OK)
-		    errx (EXIT_FAILURE, "error: cannot start capstone disassembler");
-
-		  /* Set syntax flavor output */
-		  if (intel)
-		    cs_option (handle, CS_OPT_SYNTAX, CS_OPT_SYNTAX_INTEL);
-		  else
-		    cs_option (handle, CS_OPT_SYNTAX, CS_OPT_SYNTAX_ATT);
-
-		  /* Main disassembling loop */
-		  size_t instr_count = 0;
-		  hashtable_t *ht = hashtable_new (DEFAULT_HASHTABLE_SIZE);
-		  if (ht == NULL)
-		    err (EXIT_FAILURE, "error: cannot create hashtable");
-
-			trace_t *t = NULL;
-
-		  while (true)
-		    {
-		      /* Waiting for child process */
-		      wait (&status);
-		      if (WIFEXITED (status))
-						break;
-
-		      /* Get instruction pointer */
-		      ptrace (PTRACE_GETREGS, child, NULL, &regs);
-
-		      /* Printing instruction pointer */
-		      ip = get_current_ip (&regs);
-		      fprintf (output, "0x%" PRIxPTR "  ", ip);
-
-		      /* Get the opcode from memory */
-		      for (size_t i = 0; i < MAX_OPCODE_BYTES; i += 8)
-						{
-			  			long *ptr = (long *) &(buf[i]);
-			  			*ptr = ptrace (PTRACE_PEEKDATA, child, ip + i, NULL);
-						}
-
-		      /* Get the mnemonic from decoder */
-		      count = cs_disasm (handle, &(buf[0]), MAX_OPCODE_BYTES, 0x1000, 0, &insn);
-		      if (count > 0)
-						{
-			  			/* Display the bytes */
-			  			for (size_t i = 0; i < insn[0].size; i++)
-			    		fprintf (output, " %02x", buf[i]);
-
-			  			/* Pretty printing and formating */
-			  			if (insn[0].size != 8 && insn[0].size != 11)
-			    			fprintf (output, "\t");
-
-			  			for (int i = 0; i < 4 - (insn[0].size / 3); i++)
-			    			fprintf (output, "\t");
-
-			  			/* Display mnemonic and operand */
-			  			fprintf (output, "%s  %s", insn[0].mnemonic, insn[0].op_str);
-			  			fprintf (output, "\n");
-
-			  			/* Create the instr_t structure */
-			  			instr_t *instr = instr_new (ip, insn[0].size, buf);
-			  			if (!instr)
-			    			err (EXIT_FAILURE, "error: cannot create instruction");
-
-							if (!t)
-								{
-									/* Create a new trace and store it */
-									t = trace_new (hash_instr (instr));
-									if (!t)
-										err (EXIT_FAILURE, "error: cannot create trace");
-									traces[index_trace] = t;
-								}
-							else
-								{
-									/* Insert a new element in the trace and update t to hold
-									 * the new tail */
-									t = trace_insert (t, hash_instr (instr));
-									if (!t)
-										err (EXIT_FAILURE, "error: cannot create trace");
-								}
-
-			  			if (!hashtable_insert (ht, instr))
-			    			instr_delete (instr);
-
-			  			/* Updating counters */
-			  			instr_count++;
-						}
-
-		      /* Continue to next instruction... */
-		      /* Note that, sometimes, ptrace(PTRACE_SINGLESTEP) returns '-1'
-		       * to notify that the child process did not respond quick enough,
-		       * we have to wait for ptrace() to return '0'. */
-		      while (ptrace(PTRACE_SINGLESTEP, child, NULL, NULL));
-		    }
-
-		  fprintf(output,
-			  "\n"
-			  "\tStatistics about this run\n"
-			  "\t=========================\n"
-			  "* #instructions executed: %zu\n"
-			  "* #unique instructions:   %zu\n"
-			  "* #hashtable buckets:     %zu\n"
-			  "* #hashtable collisions:  %zu\n\n\n",
-			  instr_count, hashtable_entries (ht),
-			  (size_t) DEFAULT_HASHTABLE_SIZE, hashtable_collisions (ht));
-
-		  hashtable_delete (ht);
-
-			index_trace++;
 		}
 
 	fclose(input);
