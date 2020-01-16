@@ -85,7 +85,7 @@ struct _hashtable_t
 		(h) *= 0x2127598bf4325c37ULL;	\
 		(h) ^= (h) >> 47; })
 
-uint64_t
+hash_t
 fasthash64 (const uint8_t *buf, size_t len, uint64_t seed)
 {
   const uint64_t    m = 0x880355f21e6d1965ULL;
@@ -126,7 +126,7 @@ fasthash64 (const uint8_t *buf, size_t len, uint64_t seed)
   return mix(h);
 }
 
-uint64_t
+hash_t
 hash_instr (const instr_t *instr)
 {
   return fasthash64 (instr->opcodes, instr->size, instr->address);
@@ -241,32 +241,37 @@ hashtable_collisions (hashtable_t *ht)
 
 struct _trace_t
 {
-  uint64_t h; /* Index for the hash value of the instruction */
+  hash_t h;    /* Index for the hash value of the instruction */
   trace_t *next; /* Pointer to the next value in the list */
 };
 
 trace_t *
-trace_new (uint64_t hash_index)
+trace_new (hash_t hash_index)
 {
   trace_t *t = malloc (sizeof (trace_t));
   if (!t)
     return NULL;
+
   t->h = hash_index;
   t->next = NULL;
+
   return t;
 }
 
 trace_t *
-trace_insert (trace_t *t, uint64_t hash_index)
+trace_insert (trace_t *t, hash_t hash_index)
 {
   if (!t)
     return NULL;
+
   trace_t *new = trace_new (hash_index);
   if (!new)
     return NULL;
+
   if (t->next)
     new->next = t->next;
   t->next = new;
+
   return new;
 }
 
@@ -275,6 +280,7 @@ trace_delete (trace_t *t)
 {
   if (!t)
     return;
+
   trace_t *tmp = t;
   while (tmp->next)
     {
@@ -283,22 +289,26 @@ trace_delete (trace_t *t)
       t = tmp;
     }
   free(t);
+
   return;
 }
 
 trace_t *
 trace_compare (trace_t *t1, trace_t *t2)
 {
-  trace_t *tmp1 = t1;
-  trace_t *tmp2 = t2;
+  trace_t *tmp1 = t1, *tmp2 = t2;
+
   while (tmp1->h == tmp2->h)
     {
       tmp1 = tmp1->next;
       tmp2 = tmp2->next;
+
       if (!tmp1)
 	return tmp2;
+
       if (!tmp2)
 	return NULL;
     }
+
   return tmp2;
 }

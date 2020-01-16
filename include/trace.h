@@ -42,6 +42,7 @@ uint8_t * instr_get_opcodes (instr_t * const instr);
 
 /* ***** Hashtables to store instructions ***** */
 
+typedef uint64_t hash_t;
 typedef struct _hashtable_t hashtable_t;
 
 /* Return an hash index for the instruction */
@@ -80,7 +81,7 @@ trace_t *trace_insert (trace_t *t, uint64_t hash_value);
 /* Free every element in the trace t */
 void trace_delete (trace_t *t);
 
-/* Returns the first element where t2 and t1 differs, NULL otherwise */
+/* Returns the first element where t1 and t2 differs, NULL otherwise */
 trace_t *trace_compare (trace_t *t1, trace_t *t2);
 
 #endif /* _TRACE_H */
