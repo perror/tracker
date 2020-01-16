@@ -239,7 +239,7 @@ main (int argc, char *argv[], char *envp[])
 
   /* Parent process */
   int status;
-  byte_t buf[MAX_OPCODE_BYTES];
+  uint8_t buf[MAX_OPCODE_BYTES];
   uintptr_t ip;
   struct user_regs_struct regs;
 

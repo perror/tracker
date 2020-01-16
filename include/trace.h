@@ -19,9 +19,6 @@
 
 #define DEFAULT_HASHTABLE_SIZE 65536 /* 2^16 */
 
-/* A more convenient byte_t type */
-typedef uint8_t byte_t;
-
 /* ***** Handling assembly instructions ***** */
 
 typedef struct _instr_t instr_t;
