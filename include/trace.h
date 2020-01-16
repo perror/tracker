@@ -65,4 +65,22 @@ size_t hashtable_entries (hashtable_t *ht);
 /* Count the number of collisions in the hashtable */
 size_t hashtable_collisions (hashtable_t *ht);
 
+/* ***** Linked list to store an execution trace ***** */
+
+typedef struct _trace_t trace_t;
+
+/* Creates a trace and initialize the first element with hash_index
+ * Returns a pointer to the created trace, or NULL if an error occured */
+trace_t *trace_new (uint64_t hash_index);
+
+/* Insert an element initialized with hash_index and insert it after t
+ * Returns a pointer to the created element or NULL if an error occured */
+trace_t *trace_insert (trace_t *t, uint64_t hash_value);
+
+/* Free every element in the trace t */
+void trace_delete (trace_t *t);
+
+/* Returns the first element where t2 and t1 differs, NULL otherwise */
+trace_t *trace_compare (trace_t *t1, trace_t *t2);
+
 #endif /* _TRACE_H */
