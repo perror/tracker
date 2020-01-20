@@ -159,7 +159,18 @@ void
 hashtable_delete (hashtable_t *ht)
 {
   for (size_t i = 0; i < ht->size; i++)
-    free (ht->buckets[i]);
+    {
+      if (ht->buckets[i])
+        {
+          size_t j = 0;
+          while (ht->buckets[i][j])
+            {
+              instr_delete (ht->buckets[i][j]);
+              j++;
+            }
+        }
+      free (ht->buckets[i]);
+    }
   free (ht);
 }
 
@@ -191,7 +202,7 @@ hashtable_insert (hashtable_t * ht, instr_t * instr)
   size_t k = 0;
   while (ht->buckets[index][k] != NULL)
     if (ht->buckets[index][k++]->address == instr->address)
-      return true;
+      return false; /* No error but we need to delete the redundant one */
 
   instr_t **new_bucket = calloc (k + 2, sizeof (instr_t *));
   if (!new_bucket)
