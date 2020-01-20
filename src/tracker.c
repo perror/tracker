@@ -122,147 +122,78 @@ get_current_ip (struct user_regs_struct *regs)
 #endif
 }
 
-
-uint64_t
-find_main (const char *execfilename)
+void
+get_text_info (const char *execfilename, uint64_t *text_addr, uint64_t *text_size)
 {
-	FILE *execfile = fopen (execfilename, "r");
-	output = stdout;
-  if (!execfile)
-    err (EXIT_FAILURE, "error: '%s'", execfilename);
-
-	int nb = 16384;
-	unsigned char buf0[nb];
-	fread (&buf0, nb, 1, execfile);
-	/*for (int i = 0; i < nb; i++)
-	{
-		if (i!= 0 && i % 16 == 0)
-			printf("\n");
-		printf("%#02x\t",buf0[i]);
-		}
-	printf("\n\n");*/
-
-	unsigned char buf[8];
-	fseek (execfile, 0x28, SEEK_SET);
-	fread (&buf, 8, 1, execfile);
-	uint64_t shoff = 0;
-	for (int i = 7; i >= 0; i--)
-		{
-			shoff = shoff << 8;
-			shoff += buf[i];
-		}
-//	printf("shoff = %" PRIu64 "\n", shoff);
-
-	fseek (execfile, 0x3A, SEEK_SET);
-	fread (&buf, 2, 1, execfile);
-	uint64_t shentsize = 0;
-	for (int i = 1; i >= 0; i--)
-		{
-			shentsize = shentsize << 8;
-			shentsize += buf[i];
-		}
-//	printf("shentsize = %" PRIu64 "\n", shentsize);
-
-	fseek (execfile, 0x3C, SEEK_SET);
-	fread (&buf, 2, 1, execfile);
-	uint64_t shnum = 0;
-	for (int i = 1; i >= 0; i--)
-		{
-			shnum = shnum << 8;
-			shnum += buf[i];
-		}
-//	printf("shnum = %" PRIu64 "\n", shnum);
-
-	fseek (execfile, 0x3E, SEEK_SET);
-	fread (&buf, 2, 1, execfile);
-	uint64_t shstrndx = 0;
-	for (int i = 1; i >= 0; i--)
-		{
-			shstrndx = shstrndx << 8;
-			shstrndx += buf[i];
-		}
-//	printf("shstrndx = %" PRIu64 "\n", shstrndx);
-	uint64_t truc = shoff + (shentsize * shstrndx) + 0x18;
-//	printf("truc = %" PRIu64 "\n", truc);
-	fseek(execfile, shoff + (shentsize * shstrndx) + 0x18, SEEK_SET);
-	fread (&buf0, nb, 1, execfile);
-	/*for (int i = 0; i < nb; i++)
-	{
-		if (i!= 0 && i % 16 == 0)
-			printf("\n");
-		printf("%#02x\t",buf0[i]);
-		}
-	printf("\n");*/
-
-	fseek(execfile, shoff + (shentsize * shstrndx) + 0x18, SEEK_SET);
-	fread(&buf, 8, 1, execfile);
-	uint64_t shstrtab = 0;
-	for (int i = 1; i >= 0; i--)
-		{
-			shstrtab = shstrtab << 8;
-			shstrtab += buf[i];
-		}
-//	printf("shstrtab = %" PRIu64 "\n", shstrtab);
-/*__________________________________________________________________________*/
-
-	fseek(execfile, shstrtab, SEEK_SET);
-	fread(&buf0, 50, 1, execfile);
-	int count = 0;
-	for (int i = 0; i < 50; i++)
-	{
-		if (i!= 0 && i % 16 == 0)
-			printf("\n");
-		printf("%#02x\t",buf0[i]);
-		}
-
-	printf("\n\n");
-
-	fseek(execfile, shoff + (shentsize * 0x00), SEEK_SET);
-	fread(&buf, 4, 1, execfile);
-	uint64_t stuff = 0;
-	for (int i = 3; i >= 0; i--)
-		{
-			stuff = stuff << 8;
-			stuff += buf[i];
-		}
-	//printf("stuff = %" PRIu64 "\n", stuff);
-
-	fseek(execfile, shstrtab + stuff, SEEK_SET);
-	fread(&buf0, 16, 1, execfile);
-for (int i = 0; i < 16; i++)
-	{
-		if (i!= 0 && i % 16 == 0)
-			printf("\n");
-		printf("%#02x\t",buf0[i]);
-	}
-	printf("\n\n");
-
-	fseek(execfile, shoff + (shentsize * 0x00) + 0x18, SEEK_SET);
-	fread(&buf, 8, 1, execfile);
-	uint64_t offset = 0;
-	for (int i = 7; i >= 0; i--)
-		{
-			offset = offset << 8;
-			offset += buf[i];
-		}
-	printf("offset = %" PRIu64 "\n", offset);
-
-	fseek(execfile, offset, SEEK_SET);
-	fread(&buf0, nb, 1, execfile);
-	for (int i = 0; i < nb; i++)
-	{
-		if (buf0[i] == 0x6D)
-			printf("\n YES \n");
-		if (i!= 0 && i % 16 == 0)
-			fprintf(output, "\n");
-		fprintf(output, "%#02x\t",buf0[i]);
-	}
-	fprintf(output, "\n\n\n\n");
-
-	fclose(execfile);
-	return 0;
+  FILE *execfile = fopen (execfilename, "r");
+  unsigned char buf[8];
+  fseek (execfile, 0x28, SEEK_SET);
+  fread (&buf, 8, 1, execfile);
+  uint64_t e_shoff = 0;
+  for (int i = 7; i >= 0; i--) {
+    e_shoff = e_shoff << 8;
+    e_shoff += buf[i];
+  }
+  fseek (execfile, 0x3a, SEEK_SET);
+  fread (&buf, 2, 1, execfile);
+  uint64_t e_shentsize = 0;
+  for (int i = 1; i >= 0; i--) {
+    e_shentsize = e_shentsize << 8;
+    e_shentsize += buf[i];
+  }
+  fseek (execfile, 0x3c, SEEK_SET);
+  fread (&buf, 2, 1, execfile);
+  uint64_t e_shnum = 0;
+  for (int i = 1; i >= 0; i--) {
+    e_shnum = e_shnum << 8;
+    e_shnum += buf[i];
+  }
+  fseek (execfile, 0x3e, SEEK_SET);
+  fread (&buf, 2, 1, execfile);
+  uint64_t e_shstrndx = 0;
+  for (int i = 1; i >= 0; i--) {
+    e_shstrndx = e_shstrndx << 8;
+    e_shstrndx += buf[i];
+  }
+  fseek (execfile, e_shoff + (e_shentsize * e_shstrndx) + 0x18, SEEK_SET);
+  fread (&buf, 8, 1, execfile);
+  uint64_t shstrtab = 0;
+  for (int i = 7; i >= 0; i--) {
+    shstrtab = shstrtab << 8;
+    shstrtab += buf[i];
+  }
+  uint64_t index = 0;
+  while (1) {
+    uint64_t var = 0;
+    fseek (execfile, e_shoff + (e_shentsize * index), SEEK_SET);
+    fread (&buf, 4, 1, execfile);
+    for (int i = 3; i >= 0; i--) {
+      var = var << 8;
+      var += buf[i];
+    }
+    fseek (execfile, shstrtab + var, SEEK_SET);
+    fread (&buf, 5, 1, execfile);
+    if (buf[0] == '.' && buf[1] == 't' && buf[2] == 'e' && buf[3] == 'x' && buf[4] == 't')
+      break;
+    index++;
+  }
+  fseek (execfile, e_shoff + (e_shentsize * index) + 0x18, SEEK_SET);
+  fread (&buf, 8, 1, execfile);
+  *text_addr = 0;
+  for (int i = 7; i >= 0; i--) {
+    *text_addr = *text_addr << 8;
+    *text_addr += buf[i];
+  }
+  fseek (execfile, e_shoff + (e_shentsize * index) + 0x20, SEEK_SET);
+  fread (&buf, 8, 1, execfile);
+  *text_size = 0;
+  for (int i = 7; i >= 0; i--) {
+    *text_size = *text_size << 8;
+    *text_size += buf[i];
+  }
+  fclose (execfile);
+  return;
 }
-
 
 int
 main (int argc, char *argv[], char *envp[])
@@ -407,7 +338,6 @@ main (int argc, char *argv[], char *envp[])
 					      			"error: cannot operate from inside a ptrace() call!");
 
 				      /* Starting the traced executable */
-					//		find_main(exec_argv[0]);
 				      execve (exec_argv[0], exec_argv, envp);
 
 				    }
@@ -505,7 +435,7 @@ main (int argc, char *argv[], char *envp[])
 									if (!t)
 										{
 											/* Create a new trace and store it */
-											t = trace_new (hash_instr (instr));
+											t = trace_new (instr);
 											if (!t)
 												err (EXIT_FAILURE, "error: cannot create trace");
 											traces[index_trace] = t;
@@ -514,7 +444,7 @@ main (int argc, char *argv[], char *envp[])
 										{
 											/* Insert a new element in the trace and update t to hold
 											 * the new tail */
-											t = trace_insert (t, hash_instr (instr));
+											t = trace_insert (t, instr);
 											if (!t)
 												err (EXIT_FAILURE, "error: cannot create trace");
 										}

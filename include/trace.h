@@ -74,16 +74,20 @@ typedef struct _trace_t trace_t;
 
 /* Creates a trace and initialize the first element with hash_index
 Returns a pointer to the created trace, or NULL if an error occured */
-trace_t *trace_new (uint64_t hash_index);
+trace_t *trace_new (instr_t *ins);
 
 /* Insert an element initialized with hash_index and insert it after t
 Returns a pointer to the created element or NULL if an error occured*/
-trace_t *trace_insert (trace_t *t, uint64_t hash_value);
+trace_t *trace_insert (trace_t *t, instr_t *ins);
 
 /* Free every element in the trace t */
 void trace_delete (trace_t *t);
 
 /* Returns a pointer to the first element where t2 differs from t1 */
 trace_t *trace_compare (trace_t *t1, trace_t *t2);
+
+/* ***** CFG ***** */
+
+typedef struct _cfg_t cfg_t;
 
 #endif /* _TRACE_H */
