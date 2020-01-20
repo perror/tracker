@@ -322,7 +322,9 @@ main (int argc, char *argv[], char *envp[])
 	  /* Create the instr_t structure */
 	  instr_t *instr = instr_new (ip, insn[0].size, buf);
 	  if (!instr)
-	    err (EXIT_FAILURE, "error:");
+	    err (EXIT_FAILURE, "error: cannot create instruction");
+
+    cs_free (insn, count);
 
 	  if (!hashtable_insert (ht, instr))
 	    instr_delete (instr);
@@ -338,7 +340,9 @@ main (int argc, char *argv[], char *envp[])
       while (ptrace(PTRACE_SINGLESTEP, child, NULL, NULL));
     }
 
-  fprintf(output,
+  cs_close (&handle);
+
+  fprintf (output,
 	  "\n"
 	  "\tStatistics about this run\n"
 	  "\t=========================\n"
@@ -350,6 +354,8 @@ main (int argc, char *argv[], char *envp[])
 	  (size_t) DEFAULT_HASHTABLE_SIZE, hashtable_collisions (ht));
 
   hashtable_delete (ht);
+
+
 
   return EXIT_SUCCESS;
 }
