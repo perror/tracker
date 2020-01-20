@@ -19,7 +19,7 @@ struct _instr_t
 {
   uintptr_t address; /* Address where lies the instruction */
   // uintptr_t *next; /* List of addresses of the next instructions */
-  // uint8_t type;    /* Instr type: 0 = instr, 1 = branch, 2 = call, 3 = jmp */
+  uint8_t type;    /* Instr type: 0 = instr, 1 = branch, 2 = call, 3 = jmp */
   uint8_t size;       /* Opcode size */
   uint8_t opcodes[];  /* Instruction opcode */
 };
@@ -42,6 +42,17 @@ instr_new (const uintptr_t addr, const uint8_t size, const uint8_t *opcodes)
   instr->size = size;
   memcpy (instr->opcodes, opcodes, size);
 
+	if ((opcodes[0] >= 0x70 && opcodes[0] <= 0x7F)
+	|| (opcodes[0] == 0x0F && opcodes[1] >= 0x80 && opcodes[1] <= 0x8F))
+		instr->type = 1;
+	else if (opcodes[0] == 0xE8 || opcodes[0] == 0x9A
+		|| (opcodes[0] == 0xFF && (size == 2 || size == 3)))
+		instr->type = 2;
+	else if ((opcodes[0] >= 0xE9 && opcodes[0] <= 0xEB)
+	|| (opcodes[0] == 0xFF && (size == 4 || size == 5)))
+		instr->type = 3;
+	else
+		instr->type = 0;
   return instr;
 }
 
@@ -302,3 +313,13 @@ trace_compare (trace_t *t1, trace_t *t2)
 		}
 		return tmp2;
 }
+
+
+struct _cfg_t
+{
+	uint64_t index;
+	int type;
+	int nb_in;
+	int nb_out;
+	cfg_t *successor;
+};
