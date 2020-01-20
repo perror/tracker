@@ -87,7 +87,7 @@ struct _hashtable_t
   size_t size;          /* Hashtable size */
   size_t collisions;    /* Number of collisions encountered */
   size_t entries;       /* Number of entries registered */
-  instr_t ** buckets[]; /* Hachtable buckets */
+  cfg_t ** buckets[]; /* Hachtable buckets */
 };
 
 /* Compression function for Merkle-Damgard construction */
@@ -152,7 +152,7 @@ hashtable_new (const size_t size)
       return NULL;
     }
 
-  hashtable_t *ht = malloc (sizeof (hashtable_t) + size * sizeof (instr_t *));
+  hashtable_t *ht = malloc (sizeof (hashtable_t) + size * sizeof (cfg_t *));
   if (!ht)
     return NULL;
 
@@ -161,7 +161,7 @@ hashtable_new (const size_t size)
   ht->size = size;
   ht->collisions = 0;
   ht->entries = 0;
-  memset (ht->buckets, 0, size * sizeof (instr_t *));
+  memset (ht->buckets, 0, size * sizeof (cfg_t *));
 
   return ht;
 }
@@ -170,14 +170,22 @@ void
 hashtable_delete (hashtable_t *ht)
 {
   for (size_t i = 0; i < ht->size; i++)
-    free (ht->buckets[i]);
+		{
+			size_t j = 0;
+			while (buckets[i][j] != NULL)
+				{
+					free (buckets[i][j]->instruction);
+					free (buckets[i][j]->successor);
+			    free (ht->buckets[i][j]);
+				}
+		}
   free (ht);
 }
 
 #include <stdio.h>
 
 bool
-hashtable_insert (hashtable_t * ht, instr_t * instr)
+hashtable_insert (hashtable_t * ht, cfg_t *CFG)
 {
   if (ht == NULL || instr == NULL)
     {
@@ -185,15 +193,15 @@ hashtable_insert (hashtable_t * ht, instr_t * instr)
       return false;
     }
 
-  size_t index = hash_instr(instr) % ht->size;
+  size_t index = hash_instr (CFG->instruction) % ht->size;
 
   /* Bucket is empty */
   if (ht->buckets[index] == NULL)
     {
-      ht->buckets[index] = calloc (2, sizeof (instr_t *));
+      ht->buckets[index] = calloc (2, sizeof (cfg_t *));
       if (ht->buckets[index] == NULL)
-	return false;
-      ht->buckets[index][0] = instr;
+				return false;
+      ht->buckets[index][0] = CFG;
       ht->entries++;
       return true;
     }
@@ -201,16 +209,16 @@ hashtable_insert (hashtable_t * ht, instr_t * instr)
   /* Bucket isn't NULL, scanning all entries to see if instr is already here */
   size_t k = 0;
   while (ht->buckets[index][k] != NULL)
-    if (ht->buckets[index][k++]->address == instr->address)
+    if (ht->buckets[index][k++]->instruction->address == CFG->instruction->address)
       return true;
 
-  instr_t **new_bucket = calloc (k + 2, sizeof (instr_t *));
+  instr_t **new_bucket = calloc (k + 2, sizeof (cfg_t *));
   if (!new_bucket)
     return false;
   ht->collisions++;
   ht->entries++;
-  memcpy (new_bucket, ht->buckets[index], k * sizeof (instr_t *));
-  new_bucket[k] = instr;
+  memcpy (new_bucket, ht->buckets[index], k * sizeof (cfg_t *));
+  new_bucket[k] = CFG;
   free (ht->buckets[index]);
   ht->buckets[index] = new_bucket;
 
@@ -249,6 +257,9 @@ hashtable_collisions (hashtable_t *ht)
 {
   return ht->collisions;
 }
+
+/*****************************************/
+
 
 struct _trace_t
 {
@@ -314,12 +325,98 @@ trace_compare (trace_t *t1, trace_t *t2)
 		return tmp2;
 }
 
+/********************************************************************/
 
 struct _cfg_t
 {
-	uint64_t index;
-	int type;
-	int nb_in;
-	int nb_out;
-	cfg_t *successor;
+	instr_t *instruction;
+	uint16_t nb_in;
+	uint16_t nb_out;
+	cfg_t **successor;
 };
+
+cfg_t *
+cfg_new (instr_t *ins)
+{
+	cfg_t *CFG = malloc (sizeof (cfg_t));
+	if (!CFG)
+		return NULL;
+	CFG->instruction =  ins;
+	CFG->nb_in = 0;
+	CFG->nb_out = 0;
+	switch (ins->type)
+	{
+		case 0:
+			CFG->successor = calloc (1, sizeof (cfg_t *));
+			if (!CFG->successor)
+				return NULL;
+			break;
+		case 1:
+			CFG->successor = calloc (2, sizeof (cfg_t *));
+			if (!CFG->successor)
+				return NULL;
+			break;
+		case 3:
+			CFG->successor = calloc (2, sizeof (cfg_t *));
+			if (!CFG->successor)
+				return NULL;
+			break;
+	}
+
+	return CFG;
+}
+
+static bool
+is_power_2 (uint16_t n)
+{
+	if (n == 0)
+		return false;
+	while (n % 2 == 0)
+		{
+			if (n == 2)
+				return true;
+			n = n / 2;
+		}
+	return false;
+}
+
+cfg_t *
+cfg_insert (cfg_t *CFG, instr_t *ins)
+{
+	if (!CFG)
+		return NULL;
+	cfg_t *new = cfg_new (ins);
+	if (!new)
+		return NULL;
+	if (!CFG->successor[0])
+		{
+			CFG->successor[0] = new;
+			CFG->nb_out++;
+			new->nb_in++;
+ 		}
+	else if (CFG->instruction->type == 1 || CFG->instruction->type == 3)
+		{
+			if (CFG->instruction->type == 1)
+				{
+					if (!CFG->successor[1])
+						return NULL;
+					else
+						{
+							CFG->successor[1] = new;
+							CFG->nb_out++;
+							new->nb_in++;
+						}
+				}
+			if (CFG->instruction->type == 3)
+				{
+					if (is_power_2 (CFG->nb_out))
+						CFG->successor = realloc (CFG->successor, 2 * CFG->nb_out * sizeof (cfg_t *));
+					if (!CFG->successor)
+						return NULL;
+					CFG->successor[CFG->nb_out] = new;
+					CFG->nb_out++;
+					new->nb_in++;
+				}
+			}
+	return new;
+}

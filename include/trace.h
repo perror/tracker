@@ -90,4 +90,10 @@ trace_t *trace_compare (trace_t *t1, trace_t *t2);
 
 typedef struct _cfg_t cfg_t;
 
+cfg_t *cfg_new (instr_t *ins);
+
+cfg_t *cfg_insert (cfg_t *CFG, instr_t *ins);
+
+
+
 #endif /* _TRACE_H */

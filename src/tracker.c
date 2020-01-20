@@ -163,7 +163,7 @@ get_text_info (const char *execfilename, uint64_t *text_addr, uint64_t *text_siz
     shstrtab += buf[i];
   }
   uint64_t index = 0;
-  while (1) {
+  while (true) {
     uint64_t var = 0;
     fseek (execfile, e_shoff + (e_shentsize * index), SEEK_SET);
     fread (&buf, 4, 1, execfile);
@@ -287,8 +287,11 @@ main (int argc, char *argv[], char *envp[])
 				nb_line++;
 		}
 	rewind (input);
-	trace_t *traces[nb_line];
-	int index_trace = 0;
+	cfg_t *cfg = NULL;
+	cfg_t *cfg_entry = NULL;
+	hashtable_t *ht = hashtable_new (DEFAULT_HASHTABLE_SIZE);
+	if (ht == NULL)
+		err (EXIT_FAILURE, "error: cannot create hashtable");
 
 	while (fgets (str, MAX_LEN, input) != NULL)
 		{
@@ -381,10 +384,6 @@ main (int argc, char *argv[], char *envp[])
 
 				  /* Main disassembling loop */
 				  size_t instr_count = 0;
-				  hashtable_t *ht = hashtable_new (DEFAULT_HASHTABLE_SIZE);
-				  if (ht == NULL)
-				    err (EXIT_FAILURE, "error: cannot create hashtable");
-
 					trace_t *t = NULL;
 
 				  while (true)
@@ -432,24 +431,24 @@ main (int argc, char *argv[], char *envp[])
 					  			if (!instr)
 					    			err (EXIT_FAILURE, "error: cannot create instruction");
 
-									if (!t)
+									if (!cfg)
 										{
 											/* Create a new trace and store it */
-											t = trace_new (instr);
-											if (!t)
-												err (EXIT_FAILURE, "error: cannot create trace");
-											traces[index_trace] = t;
+											cfg = cfg_new (instr);
+											if (!cfg)
+												err (EXIT_FAILURE, "error: cannot create a control flow graph");
+											cfg_entry = cfg;
 										}
 									else
 										{
 											/* Insert a new element in the trace and update t to hold
 											 * the new tail */
-											t = trace_insert (t, instr);
-											if (!t)
-												err (EXIT_FAILURE, "error: cannot create trace");
+											cfg = cfg_insert (cfg, instr);
+											if (!cfg)
+												err (EXIT_FAILURE, "error: cannot create a control flow graph");
 										}
 
-					  			if (!hashtable_insert (ht, instr))
+					  			if (!hashtable_insert (ht, cfg))
 					    			instr_delete (instr);
 
 					  			/* Updating counters */
@@ -474,16 +473,10 @@ main (int argc, char *argv[], char *envp[])
 					  instr_count, hashtable_entries (ht),
 					  (size_t) DEFAULT_HASHTABLE_SIZE, hashtable_collisions (ht));
 
-				  hashtable_delete (ht);
-
-					index_trace++;
 				}
 		}
 
 	fclose(input);
-
-	for (int i = 0; i < nb_line; i++)
-		trace_delete (traces[i]);
-
+	hashtable_delete (ht);
   return EXIT_SUCCESS;
 }
