@@ -20,8 +20,8 @@ struct _instr_t
   uintptr_t address; /* Address where lies the instruction */
   // uintptr_t *next; /* List of addresses of the next instructions */
   // uint8_t type;    /* Instr type: 0 = instr, 1 = branch, 2 = call, 3 = jmp */
-  uint8_t size;       /* Opcode size */
-  uint8_t opcodes[];  /* Instruction opcode */
+  uint8_t size;      /* Opcode size */
+  uint8_t opcodes[]; /* Instruction opcode */
 };
 
 instr_t *
@@ -52,19 +52,19 @@ instr_delete (instr_t *instr)
 }
 
 uintptr_t
-instr_get_addr (instr_t * const instr)
+instr_get_addr (instr_t *const instr)
 {
   return instr->address;
 }
 
 size_t
-instr_get_size (instr_t * const instr)
+instr_get_size (instr_t *const instr)
 {
   return instr->size;
 }
 
 uint8_t *
-instr_get_opcodes (instr_t * const instr)
+instr_get_opcodes (instr_t *const instr)
 {
   return instr->opcodes;
 }
@@ -73,57 +73,68 @@ instr_get_opcodes (instr_t * const instr)
 
 struct _hashtable_t
 {
-  size_t size;          /* Hashtable size */
-  size_t collisions;    /* Number of collisions encountered */
-  size_t entries;       /* Number of entries registered */
-  instr_t ** buckets[]; /* Hachtable buckets */
+  size_t size;	       /* Hashtable size */
+  size_t collisions;   /* Number of collisions encountered */
+  size_t entries;      /* Number of entries registered */
+  instr_t **buckets[]; /* Hachtable buckets */
 };
 
 /* Compression function for Merkle-Damgard construction */
-#define mix(h) ({				\
-		(h) ^= (h) >> 23;		\
-		(h) *= 0x2127598bf4325c37ULL;	\
-		(h) ^= (h) >> 47; })
+#define mix(h)                                                                 \
+  ({                                                                           \
+    (h) ^= (h) >> 23ULL;                                                       \
+    (h) *= 0x2127598bf4325c37ULL;                                              \
+    (h) ^= (h) >> 47ULL;                                                       \
+  })
 
 hash_t
 fasthash64 (const uint8_t *buf, size_t len, uint64_t seed)
 {
-  const uint64_t    m = 0x880355f21e6d1965ULL;
+  const uint64_t m = 0x880355f21e6d1965ULL;
   const uint64_t *pos = (const uint64_t *) buf;
   const uint64_t *end = pos + (len / 8);
-  const uint8_t  *pos2;
+  const uint8_t *pos2;
 
   uint64_t h = seed ^ (len * m);
   uint64_t v;
 
-  while (pos != end) {
-    v  = *pos++;
-    h ^= mix(v);
-    h *= m;
-  }
+  while (pos != end)
+    {
+      v = *pos++;
+      h ^= mix (v);
+      h *= m;
+    }
 
   pos2 = (const uint8_t *) pos;
   v = 0;
 
-  switch (len & 7) {
-  case 7: v ^= (uint64_t) pos2[6] << 48;
-    /* FALLTHROUGH */
-  case 6: v ^= (uint64_t) pos2[5] << 40;
-    /* FALLTHROUGH */
-  case 5: v ^= (uint64_t) pos2[4] << 32;
-    /* FALLTHROUGH */
-  case 4: v ^= (uint64_t) pos2[3] << 24;
-    /* FALLTHROUGH */
-  case 3: v ^= (uint64_t) pos2[2] << 16;
-    /* FALLTHROUGH */
-  case 2: v ^= (uint64_t) pos2[1] << 8;
-    /* FALLTHROUGH */
-  case 1: v ^= (uint64_t) pos2[0];
-    h ^= mix(v);
-    h *= m;
-  }
+  switch (len & 7)
+    {
+    case 7:
+      v ^= (uint64_t) pos2[6] << 48ULL;
+      /* FALLTHROUGH */
+    case 6:
+      v ^= (uint64_t) pos2[5] << 40ULL;
+      /* FALLTHROUGH */
+    case 5:
+      v ^= (uint64_t) pos2[4] << 32ULL;
+      /* FALLTHROUGH */
+    case 4:
+      v ^= (uint64_t) pos2[3] << 24ULL;
+      /* FALLTHROUGH */
+    case 3:
+      v ^= (uint64_t) pos2[2] << 16ULL;
+      /* FALLTHROUGH */
+    case 2:
+      v ^= (uint64_t) pos2[1] << 8ULL;
+      /* FALLTHROUGH */
+    case 1:
+      v ^= (uint64_t) pos2[0];
+      h ^= mix (v);
+      h *= m;
+    }
 
-  return mix(h);
+  return mix (h);
 }
 
 hash_t
@@ -146,7 +157,7 @@ hashtable_new (const size_t size)
     return NULL;
 
   /* Initialize to zero */
-  *ht = (hashtable_t) { 0 };
+  *ht = (hashtable_t){0};
   ht->size = size;
   ht->collisions = 0;
   ht->entries = 0;
@@ -166,7 +177,7 @@ hashtable_delete (hashtable_t *ht)
 #include <stdio.h>
 
 bool
-hashtable_insert (hashtable_t * ht, instr_t * instr)
+hashtable_insert (hashtable_t *ht, instr_t *instr)
 {
   if (ht == NULL || instr == NULL)
     {
@@ -174,7 +185,7 @@ hashtable_insert (hashtable_t * ht, instr_t * instr)
       return false;
     }
 
-  size_t index = hash_instr(instr) % ht->size;
+  size_t index = hash_instr (instr) % ht->size;
 
   /* Bucket is empty */
   if (ht->buckets[index] == NULL)
@@ -241,7 +252,7 @@ hashtable_collisions (hashtable_t *ht)
 
 struct _trace_t
 {
-  hash_t h;    /* Index for the hash value of the instruction */
+  hash_t h;      /* Index for the hash value of the instruction */
   trace_t *next; /* Pointer to the next value in the list */
 };
 
@@ -285,18 +296,17 @@ trace_delete (trace_t *t)
   while (tmp->next)
     {
       tmp = tmp->next;
-      free(t);
+      free (t);
       t = tmp;
     }
-  free(t);
-
-  return;
+  free (t);
 }
 
 trace_t *
 trace_compare (trace_t *t1, trace_t *t2)
 {
-  trace_t *tmp1 = t1, *tmp2 = t2;
+  trace_t *tmp1 = t1;
+  trace_t *tmp2 = t2;
 
   while (tmp1->h == tmp2->h)
     {

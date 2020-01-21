@@ -38,48 +38,43 @@
 #include <trace.h>
 
 /* Platform architecture arch_t type */
-typedef enum
-  {
-   unknown_arch,
-   x86_32_arch,
-   x86_64_arch
-} arch_t;
+typedef enum { unknown_arch, x86_32_arch, x86_64_arch } arch_t;
 
 /* In amd64, maximum bytes for an opcode is 15 */
 #define MAX_OPCODE_BYTES 16
 
 /* Global variables for this module */
-static bool debug = false;      /* 'debug' option flag */
-static bool verbose = false;    /* 'verbose' option flag */
-static FILE *output = NULL;     /* output file (default: stdout) */
+static bool debug = false;   /* 'debug' option flag */
+static bool verbose = false; /* 'verbose' option flag */
+static FILE *output = NULL;  /* output file (default: stdout) */
 
 /* Get the architecture of the executable */
 static arch_t
 check_execfile (char *execfilename)
 {
   struct stat exec_stats;
-  if (stat(execfilename, &exec_stats) == -1)
+  if (stat (execfilename, &exec_stats) == -1)
     err (EXIT_FAILURE, "error: '%s'", execfilename);
 
-  if (!S_ISREG(exec_stats.st_mode) || !(exec_stats.st_mode & S_IXUSR))
+  if (!S_ISREG (exec_stats.st_mode) || !(exec_stats.st_mode & S_IXUSR))
     errx (EXIT_FAILURE, "error: '%s' is not an executable file", execfilename);
 
   /* Check if given file is an executable and discover its architecture */
-  FILE *execfile = fopen (execfilename, "r");
+  FILE *execfile = fopen (execfilename, "re");
   if (!execfile)
     err (EXIT_FAILURE, "error: '%s'", execfilename);
 
   /* Open file */
-  char buf[4] = { 0 };
+  char buf[4] = {0};
   if (fread (&buf, 4, 1, execfile) != 1)
     errx (EXIT_FAILURE, "error: cannot read '%s'", execfilename);
 
   /* Check ELF magic number (first 4 bytes: 0x7f "ELF") */
-  if (buf[0] != 0x7f || strncmp (&(buf[1]), "ELF", 3))
+  if (buf[0] != 0x7f || strncmp (&(buf[1]), "ELF", 3) != 0)
     errx (EXIT_FAILURE, "error: '%s' is not an ELF binary", execfilename);
 
   /* Extract executable architecture (byte at 0x12) */
-  fseek(execfile, 0x12, SEEK_SET);
+  fseek (execfile, 0x12, SEEK_SET);
   if (fread (&buf, 1, 1, execfile) != 1)
     errx (EXIT_FAILURE, "error: cannot read '%s'", execfilename);
 
@@ -99,7 +94,7 @@ check_execfile (char *execfilename)
     }
 
   /* Closing file after verifications */
-  fclose(execfile);
+  fclose (execfile);
 
   return exec_arch;
 }
@@ -109,9 +104,9 @@ static uintptr_t
 get_current_ip (struct user_regs_struct *regs)
 {
 #if defined(__x86_64__) /* amd64 architecture */
-      return regs->rip;
+  return regs->rip;
 #elif defined(__i386__) /* i386 architecture */
-      return regs->eip;
+  return regs->eip;
 #else
 #error Cannot build, we only support: x86-64 and i386 architectures
 #endif
@@ -132,65 +127,61 @@ main (int argc, char *argv[], char *envp[])
 
   bool intel = false;
 
-   const struct option long_opts[] = {
-    {"debug",          no_argument, NULL, 'd'},
-    {"intel",          no_argument, NULL, 'i'},
-    {"output",   required_argument, NULL, 'o'},
-    {"verbose",        no_argument, NULL, 'v'},
-    {"version",        no_argument, NULL, 'V'},
-    {"help",           no_argument, NULL, 'h'},
-    {NULL,                       0, NULL,   0}
-  };
+  const struct option long_opts[] = {{"debug", no_argument, NULL, 'd'},
+				     {"intel", no_argument, NULL, 'i'},
+				     {"output", required_argument, NULL, 'o'},
+				     {"verbose", no_argument, NULL, 'v'},
+				     {"version", no_argument, NULL, 'V'},
+				     {"help", no_argument, NULL, 'h'},
+				     {NULL, 0, NULL, 0}};
 
-   const char *usage_msg =
-     "Usage: %1$s [-o FILE|-i|-v|-d|-V|-h] [--] EXEC [ARGS]\n"
-     "Trace the execution of EXEC on the given arguments ARGS\n"
-     "\n"
-     " -o FILE,--output FILE  write result to FILE\n"
-     " -i,--intel             switch to intel syntax (default: at&t)\n"
-     " -v,--verbose           verbose output\n"
-     " -d,--debug             debug output\n"
-     " -V,--version           display version and exit\n"
-     " -h,--help              display this help\n";
+  const char *usage_msg =
+      "Usage: %1$s [-o FILE|-i|-v|-d|-V|-h] [--] EXEC [ARGS]\n"
+      "Trace the execution of EXEC on the given arguments ARGS\n"
+      "\n"
+      " -o FILE,--output FILE  write result to FILE\n"
+      " -i,--intel             switch to intel syntax (default: at&t)\n"
+      " -v,--verbose           verbose output\n"
+      " -d,--debug             debug output\n"
+      " -V,--version           display version and exit\n"
+      " -h,--help              display this help\n";
 
   /* Parsing options */
   int optc;
   while ((optc = getopt_long (argc, argv, opts, long_opts, NULL)) != -1)
     switch (optc)
       {
-      case 'o':         /* Output file */
-        output = fopen (optarg, "we");
-        if (!output)
+      case 'o': /* Output file */
+	output = fopen (optarg, "we");
+	if (!output)
 	  err (EXIT_FAILURE, "error: cannot open file '%s'", optarg);
-        break;
+	break;
 
-      case 'i':         /* intel syntax mode */
-        intel = true;
-        break;
+      case 'i': /* intel syntax mode */
+	intel = true;
+	break;
 
-      case 'd':         /* Debug mode */
-        debug = true;
-        break;
+      case 'd': /* Debug mode */
+	debug = true;
+	break;
 
-      case 'v':         /* Verbosity mode */
-        verbose = true;
-        break;
+      case 'v': /* Verbosity mode */
+	verbose = true;
+	break;
 
-      case 'V':         /* Display version number and exit */
-        fprintf (stdout, "%s %s\n",
-                 program_name, VERSION);
-        fputs ("Trace the execution of a program on the given input\n",
-               stdout);
-        exit (EXIT_SUCCESS);
-        break;
+      case 'V': /* Display version number and exit */
+	fprintf (stdout, "%s %s\n", program_name, VERSION);
+	fputs ("Trace the execution of a program on the given input\n", stdout);
+	exit (EXIT_SUCCESS);
+	break;
 
-      case 'h':         /* Display usage and exit */
-        fprintf (stdout, usage_msg, program_name);
-        exit (EXIT_SUCCESS);
-        break;
+      case 'h': /* Display usage and exit */
+	fprintf (stdout, usage_msg, program_name);
+	exit (EXIT_SUCCESS);
+	break;
 
       default:
-        errx (EXIT_FAILURE, "error: invalid option '%s'!", argv[optind - 1]);
+	errx (EXIT_FAILURE, "error: invalid option '%s'!", argv[optind - 1]);
       }
 
   /* Checking that extra arguments are present */
@@ -229,7 +220,7 @@ main (int argc, char *argv[], char *envp[])
       personality (ADDR_NO_RANDOMIZE);
 
       /* Start tracing the process */
-      if (ptrace(PTRACE_TRACEME, 0, NULL, NULL) == -1)
+      if (ptrace (PTRACE_TRACEME, 0, NULL, NULL) == -1)
 	errx (EXIT_FAILURE,
 	      "error: cannot operate from inside a ptrace() call!");
 
@@ -264,14 +255,14 @@ main (int argc, char *argv[], char *envp[])
     }
 
   /* Initialize the assembly decoder */
-  if (cs_open(CS_ARCH_X86, exec_mode, &handle) != CS_ERR_OK)
+  if (cs_open (CS_ARCH_X86, exec_mode, &handle) != CS_ERR_OK)
     errx (EXIT_FAILURE, "error: cannot start capstone disassembler");
 
   /* Set syntax flavor output */
   if (intel)
-    cs_option(handle, CS_OPT_SYNTAX, CS_OPT_SYNTAX_INTEL);
+    cs_option (handle, CS_OPT_SYNTAX, CS_OPT_SYNTAX_INTEL);
   else
-    cs_option(handle, CS_OPT_SYNTAX, CS_OPT_SYNTAX_ATT);
+    cs_option (handle, CS_OPT_SYNTAX, CS_OPT_SYNTAX_ATT);
 
   /* Main disassembling loop */
   size_t instr_count = 0;
@@ -282,12 +273,12 @@ main (int argc, char *argv[], char *envp[])
   while (true)
     {
       /* Waiting for child process */
-      wait(&status);
-      if (WIFEXITED(status))
+      wait (&status);
+      if (WIFEXITED (status))
 	break;
 
       /* Get instruction pointer */
-      ptrace(PTRACE_GETREGS, child, NULL, &regs);
+      ptrace (PTRACE_GETREGS, child, NULL, &regs);
 
       /* Printing instruction pointer */
       ip = get_current_ip (&regs);
@@ -301,7 +292,7 @@ main (int argc, char *argv[], char *envp[])
 	}
 
       /* Get the mnemonic from decoder */
-      count = cs_disasm(handle, &(buf[0]), MAX_OPCODE_BYTES, 0x1000, 0, &insn);
+      count = cs_disasm (handle, &(buf[0]), MAX_OPCODE_BYTES, 0x1000, 0, &insn);
       if (count > 0)
 	{
 	  /* Display the bytes */
@@ -317,7 +308,7 @@ main (int argc, char *argv[], char *envp[])
 
 	  /* Display mnemonic and operand */
 	  fprintf (output, "%s  %s", insn[0].mnemonic, insn[0].op_str);
-	  fprintf(output, "\n");
+	  fprintf (output, "\n");
 
 	  /* Create the instr_t structure */
 	  instr_t *instr = instr_new (ip, insn[0].size, buf);
@@ -335,19 +326,20 @@ main (int argc, char *argv[], char *envp[])
       /* Note that, sometimes, ptrace(PTRACE_SINGLESTEP) returns '-1'
        * to notify that the child process did not respond quick enough,
        * we have to wait for ptrace() to return '0'. */
-      while (ptrace(PTRACE_SINGLESTEP, child, NULL, NULL));
+      while (ptrace (PTRACE_SINGLESTEP, child, NULL, NULL))
+	;
     }
 
-  fprintf(output,
-	  "\n"
-	  "\tStatistics about this run\n"
-	  "\t=========================\n"
-	  "* #instructions executed: %zu\n"
-	  "* #unique instructions:   %zu\n"
-	  "* #hashtable buckets:     %zu\n"
-	  "* #hashtable collisions:  %zu\n",
-	  instr_count, hashtable_entries (ht),
-	  (size_t) DEFAULT_HASHTABLE_SIZE, hashtable_collisions (ht));
+  fprintf (output,
+	   "\n"
+	   "\tStatistics about this run\n"
+	   "\t=========================\n"
+	   "* #instructions executed: %zu\n"
+	   "* #unique instructions:   %zu\n"
+	   "* #hashtable buckets:     %zu\n"
+	   "* #hashtable collisions:  %zu\n",
+	   instr_count, hashtable_entries (ht), (size_t) DEFAULT_HASHTABLE_SIZE,
+	   hashtable_collisions (ht));
 
   hashtable_delete (ht);
 

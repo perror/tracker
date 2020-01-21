@@ -15,6 +15,7 @@
 
 #include <stdbool.h>
 #include <stdlib.h>
+
 #include <inttypes.h>
 
 #define DEFAULT_HASHTABLE_SIZE 65536 /* 2^16 */
@@ -24,21 +25,20 @@
 typedef struct _instr_t instr_t;
 
 /* Return a new instr_t struct, NULL otherwise (and set errno) */
-instr_t *instr_new (const uintptr_t addr,
-		    const uint8_t size,
+instr_t *instr_new (const uintptr_t addr, const uint8_t size,
 		    const uint8_t *opcodes);
 
 /* Delete the assembly instruction from memory */
 void instr_delete (instr_t *instr);
 
 /* Get the address of the instruction */
-uintptr_t instr_get_addr (instr_t * const instr);
+uintptr_t instr_get_addr (instr_t *const instr);
 
 /* Get the size (in bytes) of the instruction */
-size_t instr_get_size (instr_t * const instr);
+size_t instr_get_size (instr_t *const instr);
 
 /* Get a pointer to the opcodes of the instruction */
-uint8_t * instr_get_opcodes (instr_t * const instr);
+uint8_t *instr_get_opcodes (instr_t *const instr);
 
 /* ***** Hashtables to store instructions ***** */
 
@@ -55,7 +55,7 @@ hashtable_t *hashtable_new (const size_t size);
 void hashtable_delete (hashtable_t *ht);
 
 /* Insert the instruction in the hashtable */
-bool hashtable_insert (hashtable_t * ht, instr_t * instr);
+bool hashtable_insert (hashtable_t *ht, instr_t *instr);
 
 /* Look-up if current instruction is already in the hashtable */
 bool hashtable_lookup (hashtable_t *ht, instr_t *instr);
@@ -72,11 +72,11 @@ typedef struct _trace_t trace_t;
 
 /* Creates a trace and initialize the first element with hash_index
  * Returns a pointer to the created trace, or NULL if an error occured */
-trace_t *trace_new (uint64_t hash_index);
+trace_t *trace_new (hash_t hash_index);
 
 /* Insert an element initialized with hash_index and insert it after t
  * Returns a pointer to the created element or NULL if an error occured */
-trace_t *trace_insert (trace_t *t, uint64_t hash_value);
+trace_t *trace_insert (trace_t *t, hash_t hash_index);
 
 /* Free every element in the trace t */
 void trace_delete (trace_t *t);
