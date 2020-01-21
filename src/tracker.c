@@ -460,11 +460,6 @@ main (int argc, char *argv[], char *envp[])
 											}
 										}
 
-					  			if (!hashtable_insert (ht, cfg))
-									{
-					    			instr_delete (instr);
-									}
-
 					  			/* Updating counters */
 					  			instr_count++;
 								}

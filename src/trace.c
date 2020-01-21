@@ -497,11 +497,12 @@ cfg_insert (hashtable_t *ht, cfg_t *CFG, instr_t *ins)
 	if (!new)
 		{
 		new = cfg_new (ins);
+    hashtable_insert (ht, new);
 		return aux_cfg_insert(CFG, new);
 		}
 else
 	{
-
+    instr_delete (ins);
 		for (size_t i = 0; i < CFG->nb_out; i++)
 			{
 				if (CFG->successor[i]->instruction->address
@@ -523,15 +524,7 @@ cfg_delete (cfg_t *CFG)
 				instr_delete (CFG->instruction);
 			}
 			if (CFG->successor)
-				{
-					size_t i = 0;
-					while (CFG->successor[i])
-						{
-							free (CFG->successor[i]);
-							i++;
-						}
-					free (CFG->successor);
-				}
+				free (CFG->successor);
 			free (CFG);
 		}
 	return;
