@@ -54,7 +54,6 @@ instr_new (const uintptr_t addr, const uint8_t size, const uint8_t *opcodes)
 		instr->type = 3;
 	else
 		instr->type = 0;
-	//printf("type %d \n", instr->type);
   return instr;
 }
 
@@ -183,18 +182,15 @@ hashtable_delete (hashtable_t *ht)
   for (size_t i = 0; i < ht->size; i++)
 		{
 			size_t j = 0;
-			printf("i,j = %zu, %zu\n",i,j);
 			if (ht->buckets[i])
-				printf("!!!\n");
-			while (ht->buckets[i][j] != NULL)
 				{
-					printf("rentré %zu fois !", j);
-					free (ht->buckets[i][j]->instruction);
-					free (ht->buckets[i][j]->successor);
-			    free (ht->buckets[i][j]);
-					j++;
+					while (ht->buckets[i][j] != NULL)
+						{
+							cfg_delete (ht->buckets[i][j]);
+							j++;
+						}
+					free (ht->buckets[i]);
 				}
-			free (ht->buckets[i]);
 		}
   free (ht);
 }
@@ -215,13 +211,9 @@ hashtable_insert (hashtable_t * ht, cfg_t *CFG)
   /* Bucket is empty */
   if (ht->buckets[index] == NULL)
     {
-			printf("création \n");
       ht->buckets[index] = calloc (2, sizeof (cfg_t *));
       if (ht->buckets[index] == NULL)
-			{
-				printf("coucou 1 \n");
 				return false;
-			}
       ht->buckets[index][0] = CFG;
       ht->entries++;
       return true;
@@ -230,19 +222,16 @@ hashtable_insert (hashtable_t * ht, cfg_t *CFG)
   /* Bucket isn't NULL, scanning all entries to see if instr is already here */
   size_t k = 0;
   while (ht->buckets[index][k] != NULL)
-    if (ht->buckets[index][k++]->instruction->address == CFG->instruction->address)
-		{
+	{
+    if (ht->buckets[index][k]->instruction->address == CFG->instruction->address)
 			return true; /* No error but we need to delete the redundant one */
-		}
+		k++;
+	}
   cfg_t **new_bucket = calloc (k + 2, sizeof (cfg_t *));
   if (!new_bucket)
-	{
-		printf("coucou 3 \n");
-		  return false;
-	}
+		return false;
 
   ht->collisions++;
-	printf("collisions \n");
   ht->entries++;
   memcpy (new_bucket, ht->buckets[index], k * sizeof (cfg_t *));
   new_bucket[k] = CFG;
@@ -252,25 +241,27 @@ hashtable_insert (hashtable_t * ht, cfg_t *CFG)
   return true;
 }
 
-bool
+cfg_t *
 hashtable_lookup (hashtable_t *ht, instr_t *instr)
 {
   if (!ht)
-    return false;
+    return NULL;
 
   size_t index = hash_instr (instr) % ht->size;
 
   /* Bucket is empty */
   if (ht->buckets[index] == NULL)
-    return false;
+    return NULL;
 
   /* Bucket is not empty, scanning all entries to see if instr is here */
   size_t k = 0;
   while (ht->buckets[index][k] != NULL)
-    if (ht->buckets[index][k++]->instruction->address == instr->address)
-      return true;
-
-  return false;
+		{
+	    if (ht->buckets[index][k]->instruction->address == instr->address)
+				return ht->buckets[index][k];
+			k++;
+		}
+  return NULL;
 }
 
 size_t
@@ -368,33 +359,75 @@ cfg_new (instr_t *ins)
 	{
 		case 0:
 			CFG->successor = calloc (1, sizeof (cfg_t *));
-			CFG->successor[0] = calloc (1, sizeof (cfg_t));
-			CFG->successor[0] = NULL;
 			if (!CFG->successor)
+				{
+					cfg_delete (CFG);
+					return NULL;
+				}
+			CFG->successor[0] = calloc (1, sizeof (cfg_t));
+			if (!CFG->successor[0])
+			{
+				cfg_delete (CFG);
 				return NULL;
+			}
+			CFG->successor[0] = NULL;
 			break;
 		case 1:
 			CFG->successor = calloc (2, sizeof (cfg_t *));
-			for (int i = 0; i < 2; i++)
-				CFG->successor[i] = calloc (1, sizeof (cfg_t));
-			CFG->successor[0] = NULL;
 			if (!CFG->successor)
+			{
+				cfg_delete (CFG);
 				return NULL;
+			}
+			for (int i = 0; i < 2; i++)
+				{
+					CFG->successor[i] = calloc (1, sizeof (cfg_t));
+					if (!CFG->successor[i])
+					{
+						cfg_delete (CFG);
+						return NULL;
+					}
+				}
+			CFG->successor[0] = NULL;
 			break;
 		case 2:
 			CFG->successor = calloc (1, sizeof (cfg_t *));
-			CFG->successor[0] = calloc (1, sizeof (cfg_t));
-			CFG->successor[0] = NULL;
 			if (!CFG->successor)
+			{
+				cfg_delete (CFG);
 				return NULL;
+			}
+			CFG->successor[0] = calloc (1, sizeof (cfg_t));
+			if (!CFG->successor[0])
+			{
+				cfg_delete (CFG);
+				return NULL;
+			}
+			CFG->successor[0] = NULL;
+			break;
+			if (!CFG->successor)
+			{
+				cfg_delete (CFG);
+				return NULL;
+			}
 			break;
 		case 3:
 			CFG->successor = calloc (2, sizeof (cfg_t *));
-			for (int i = 0; i < 2; i++)
-				CFG->successor[i] = calloc (1, sizeof (cfg_t));
-			CFG->successor[0] = NULL;
 			if (!CFG->successor)
+			{
+				cfg_delete (CFG);
 				return NULL;
+			}
+			for (int i = 0; i < 2; i++)
+				{
+					CFG->successor[i] = calloc (1, sizeof (cfg_t));
+					if (!CFG->successor[i])
+					{
+						cfg_delete (CFG);
+						return NULL;
+					}
+				}
+			CFG->successor[0] = NULL;
 			break;
 	}
 	return CFG;
@@ -415,11 +448,8 @@ is_power_2 (uint16_t n)
 }
 
 cfg_t *
-cfg_insert (cfg_t *CFG, instr_t *ins)
+aux_cfg_insert (cfg_t *CFG, cfg_t *new)
 {
-	if (!CFG)
-		return NULL;
-	cfg_t *new = cfg_new (ins);
 	if (!new)
 		return NULL;
 	if (!CFG->successor[0])
@@ -427,7 +457,7 @@ cfg_insert (cfg_t *CFG, instr_t *ins)
 			CFG->successor[0] = new;
 			CFG->nb_out++;
 			new->nb_in++;
- 		}
+		}
 	else if (CFG->instruction->type == 1 || CFG->instruction->type == 3)
 		{
 			if (CFG->instruction->type == 1)
@@ -446,11 +476,63 @@ cfg_insert (cfg_t *CFG, instr_t *ins)
 					if (is_power_2 (CFG->nb_out))
 						CFG->successor = realloc (CFG->successor, 2 * CFG->nb_out * sizeof (cfg_t *));
 					if (!CFG->successor)
+					{
+						cfg_delete (CFG);
 						return NULL;
+					}
 					CFG->successor[CFG->nb_out] = new;
 					CFG->nb_out++;
 					new->nb_in++;
 				}
 			}
-	return new;
+		return new;
+}
+
+cfg_t *
+cfg_insert (hashtable_t *ht, cfg_t *CFG, instr_t *ins)
+{
+	if (!CFG)
+		return NULL;
+	cfg_t *new = hashtable_lookup (ht, ins);
+	if (!new)
+		{
+		new = cfg_new (ins);
+		return aux_cfg_insert(CFG, new);
+		}
+else
+	{
+
+		for (size_t i = 0; i < CFG->nb_out; i++)
+			{
+				if (CFG->successor[i]->instruction->address
+					 == new->instruction->address)
+					return new;
+			}
+		return aux_cfg_insert(CFG, new);
+	}
+}
+
+
+void
+cfg_delete (cfg_t *CFG)
+{
+	if (CFG)
+		{
+			if (CFG->instruction)
+			{
+				instr_delete (CFG->instruction);
+			}
+			if (CFG->successor)
+				{
+					size_t i = 0;
+					while (CFG->successor[i])
+						{
+							free (CFG->successor[i]);
+							i++;
+						}
+					free (CFG->successor);
+				}
+			free (CFG);
+		}
+	return;
 }

@@ -429,25 +429,35 @@ main (int argc, char *argv[], char *envp[])
 					  			/* Create the instr_t structure */
 					  			instr_t *instr = instr_new (ip, insn[0].size, buf);
 					  			if (!instr)
+									{
+										hashtable_delete (ht);
 					    			err (EXIT_FAILURE, "error: cannot create instruction");
+									}
 									cs_free (insn, count);
 
 									if (!cfg)
 									 	{
 											/* Create a new trace and store it */
-											printf("Premier noeud \n");
 											cfg = cfg_new (instr);
 											if (!cfg)
+											{
+												cfg_delete (cfg);
+												hashtable_delete (ht);
 									 			err (EXIT_FAILURE, "error: cannot create a control flow graph");
+											}
 									 		cfg_entry = cfg;
 										}
 									else
 										{
 											/* Insert a new element in the cfg and update cfg to hold
 											 * the new node */
-											cfg = cfg_insert (cfg, instr);
+											cfg = cfg_insert (ht, cfg, instr);
 											if (!cfg)
+											{
+												cfg_delete (cfg);
+												hashtable_delete (ht);
 												err (EXIT_FAILURE, "error: cannot create a control flow graph");
+											}
 										}
 
 					  			if (!hashtable_insert (ht, cfg))
@@ -480,7 +490,8 @@ main (int argc, char *argv[], char *envp[])
 				}
 		}
 
-	fclose(input);
+	fclose (input);
+	fclose (output);
 	hashtable_delete (ht);
   return EXIT_SUCCESS;
 }

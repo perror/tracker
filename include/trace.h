@@ -62,7 +62,7 @@ void hashtable_delete (hashtable_t *ht);
 bool hashtable_insert (hashtable_t * ht, cfg_t *cfg);
 
 /* Look-up if current instruction is already in the hashtable */
-bool hashtable_lookup (hashtable_t *ht, instr_t *instr);
+cfg_t *hashtable_lookup (hashtable_t *ht, instr_t *instr);
 
 /* Count the number of entries in the hashtable */
 size_t hashtable_entries (hashtable_t *ht);
@@ -94,7 +94,11 @@ trace_t *trace_compare (trace_t *t1, trace_t *t2);
 
 cfg_t *cfg_new (instr_t *ins);
 
-cfg_t *cfg_insert (cfg_t *CFG, instr_t *ins);
+cfg_t *aux_cfg_insert (cfg_t *CFG, cfg_t *new);
+
+cfg_t *cfg_insert (hashtable_t *ht, cfg_t *CFG, instr_t *ins);
+
+void cfg_delete (cfg_t *CFG);
 
 
 
