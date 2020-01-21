@@ -384,7 +384,7 @@ main (int argc, char *argv[], char *envp[])
 
 				  /* Main disassembling loop */
 				  size_t instr_count = 0;
-					trace_t *t = NULL;
+
 
 				  while (true)
 				    {
@@ -430,26 +430,30 @@ main (int argc, char *argv[], char *envp[])
 					  			instr_t *instr = instr_new (ip, insn[0].size, buf);
 					  			if (!instr)
 					    			err (EXIT_FAILURE, "error: cannot create instruction");
+									cs_free (insn, count);
 
 									if (!cfg)
-										{
+									 	{
 											/* Create a new trace and store it */
+											printf("Premier noeud \n");
 											cfg = cfg_new (instr);
 											if (!cfg)
-												err (EXIT_FAILURE, "error: cannot create a control flow graph");
-											cfg_entry = cfg;
+									 			err (EXIT_FAILURE, "error: cannot create a control flow graph");
+									 		cfg_entry = cfg;
 										}
 									else
 										{
-											/* Insert a new element in the trace and update t to hold
-											 * the new tail */
+											/* Insert a new element in the cfg and update cfg to hold
+											 * the new node */
 											cfg = cfg_insert (cfg, instr);
 											if (!cfg)
 												err (EXIT_FAILURE, "error: cannot create a control flow graph");
 										}
 
 					  			if (!hashtable_insert (ht, cfg))
+									{
 					    			instr_delete (instr);
+									}
 
 					  			/* Updating counters */
 					  			instr_count++;
@@ -461,7 +465,7 @@ main (int argc, char *argv[], char *envp[])
 				       * we have to wait for ptrace() to return '0'. */
 				      while (ptrace(PTRACE_SINGLESTEP, child, NULL, NULL));
 				    }
-
+					cs_close (&handle);
 				  fprintf(output,
 					  "\n"
 					  "\tStatistics about this run\n"

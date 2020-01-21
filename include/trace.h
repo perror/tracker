@@ -26,6 +26,8 @@ typedef uint8_t byte_t;
 
 typedef struct _instr_t instr_t;
 
+typedef struct _cfg_t cfg_t;
+
 /* Return a new instr_t struct, NULL otherwise (and set errno) */
 instr_t *instr_new (const uintptr_t addr,
 		    const uint8_t size,
@@ -57,7 +59,7 @@ hashtable_t *hashtable_new (const size_t size);
 void hashtable_delete (hashtable_t *ht);
 
 /* Insert the instruction in the hashtable */
-bool hashtable_insert (hashtable_t * ht, instr_t * instr);
+bool hashtable_insert (hashtable_t * ht, cfg_t *cfg);
 
 /* Look-up if current instruction is already in the hashtable */
 bool hashtable_lookup (hashtable_t *ht, instr_t *instr);
@@ -88,7 +90,7 @@ trace_t *trace_compare (trace_t *t1, trace_t *t2);
 
 /* ***** CFG ***** */
 
-typedef struct _cfg_t cfg_t;
+
 
 cfg_t *cfg_new (instr_t *ins);
 
