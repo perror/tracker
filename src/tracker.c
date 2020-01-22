@@ -431,6 +431,10 @@ main (int argc, char *argv[], char *envp[])
 					  			if (!instr)
 									{
 										hashtable_delete (ht);
+										cs_free (insn, count);
+										cs_close (&handle);
+										fclose (input);
+										fclose (output);
 					    			err (EXIT_FAILURE, "error: cannot create instruction");
 									}
 									cs_free (insn, count);
@@ -441,8 +445,10 @@ main (int argc, char *argv[], char *envp[])
 											cfg = cfg_new (ht, instr);
 											if (!cfg)
 											{
-												cfg_delete (cfg);
 												hashtable_delete (ht);
+												cs_close (&handle);
+												fclose (input);
+												fclose (output);
 									 			err (EXIT_FAILURE, "error: cannot create a control flow graph");
 											}
 									 		cfg_entry = cfg;
@@ -454,8 +460,10 @@ main (int argc, char *argv[], char *envp[])
 											cfg = cfg_insert (ht, cfg, instr);
 											if (!cfg)
 											{
-												cfg_delete (cfg);
 												hashtable_delete (ht);
+												cs_close (&handle);
+												fclose (input);
+												fclose (output);
 												err (EXIT_FAILURE, "error: cannot create a control flow graph");
 											}
 										}
