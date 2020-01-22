@@ -20,7 +20,7 @@ struct _instr_t
 {
   uintptr_t address; /* Address where lies the instruction */
   // uintptr_t *next; /* List of addresses of the next instructions */
-  uint8_t type;    /* Instr type: 0 = instr, 1 = branch, 2 = call, 3 = jmp */
+  uint8_t type;    /* Instr type: 0 = instr, 1 = branch, 2 = call, 3 = jmp, 4 = ret */
   uint8_t size;       /* Opcode size */
   uint8_t opcodes[];  /* Instruction opcode */
 };
@@ -52,6 +52,9 @@ instr_new (const uintptr_t addr, const uint8_t size, const uint8_t *opcodes)
 	else if ((opcodes[0] >= 0xE9 && opcodes[0] <= 0xEB)
 	|| (opcodes[0] == 0xFF && (size == 4 || size == 5)))
 		instr->type = 3;
+	else if (((opcodes[0] == 0xC3 || opcodes[0] == 0xCB) && size == 1) ||
+	 ((opcodes[0] == 0xC2 || opcodes[0] == 0xCA) && size == 3))
+	 instr->type = 4;
 	else
 		instr->type = 0;
   return instr;
@@ -97,8 +100,13 @@ struct _cfg_t
 	instr_t *instruction;
 	uint16_t nb_in;
 	uint16_t nb_out;
+	uint16_t name;
 	cfg_t **successor;
 };
+
+uint16_t depth = 0;
+uint16_t nb_name = 0;
+cfg_t *stack[256] = {NULL};
 
 /* Compression function for Merkle-Damgard construction */
 #define mix(h) ({				\
@@ -355,6 +363,8 @@ cfg_new (hashtable_t *ht, instr_t *ins)
 	CFG->instruction =  ins;
 	CFG->nb_in = 0;
 	CFG->nb_out = 0;
+	if (nb_name == 0)
+		CFG->name = 0;
 	switch (ins->type)
 	{
 		case 0:
@@ -374,7 +384,7 @@ cfg_new (hashtable_t *ht, instr_t *ins)
 			}
 			break;
 		case 2:
-			CFG->successor = calloc (1, sizeof (cfg_t *));
+			CFG->successor = calloc (2, sizeof (cfg_t *));
 			if (!CFG->successor)
 			{
 				cfg_delete (CFG);
@@ -388,6 +398,9 @@ cfg_new (hashtable_t *ht, instr_t *ins)
 				cfg_delete (CFG);
 				return NULL;
 			}
+			break;
+		case 4:
+			CFG->successor = NULL;
 			break;
 	}
 	hashtable_insert (ht, CFG);
@@ -413,13 +426,15 @@ aux_cfg_insert (cfg_t *CFG, cfg_t *new)
 {
 	if (!new)
 		return NULL;
-	if (!CFG->successor[0])
+	if (CFG->instruction->type != 4 && !CFG->successor[0])
 		{
 			CFG->successor[0] = new;
 			CFG->nb_out++;
 			new->nb_in++;
+			new->name = CFG->name;
 		}
-	else if (CFG->instruction->type == 1 || CFG->instruction->type == 3)
+	else if (CFG->instruction->type == 1 || CFG->instruction->type == 3
+	|| CFG->instruction->type == 4)
 		{
 			if (CFG->instruction->type == 1)
 				{
@@ -427,7 +442,7 @@ aux_cfg_insert (cfg_t *CFG, cfg_t *new)
 						return NULL;
 					else
 						{
-						CFG->successor = realloc (CFG->successor, 2 * sizeof (cfg_t *));
+					//	CFG->successor = realloc (CFG->successor, 2 * sizeof (cfg_t *));
 						if (!CFG->successor)
 						{
 							cfg_delete (CFG);
@@ -436,8 +451,29 @@ aux_cfg_insert (cfg_t *CFG, cfg_t *new)
 							CFG->successor[1] = new;
 							CFG->nb_out++;
 							new->nb_in++;
+							new->name = CFG->name;
 						}
 				}
+				if (CFG->instruction->type == 4)
+					{
+						depth--;
+						CFG = stack[depth];
+						stack[depth] = NULL;
+
+
+							if (is_power_2 (CFG->nb_out))
+								CFG->successor = realloc (CFG->successor, 2 * CFG->nb_out * sizeof (cfg_t *));
+							if (!CFG->successor)
+							{
+								cfg_delete (CFG);
+								return NULL;
+							}
+								CFG->successor[1] = new;
+								CFG->nb_out++;
+								new->nb_in++;
+								new->name = CFG->name;
+
+					}
 			if (CFG->instruction->type == 3)
 				{
 					if (is_power_2 (CFG->nb_out))
@@ -450,6 +486,7 @@ aux_cfg_insert (cfg_t *CFG, cfg_t *new)
 					CFG->successor[CFG->nb_out] = new;
 					CFG->nb_out++;
 					new->nb_in++;
+					new->name = CFG->name;
 				}
 			}
 		return new;
@@ -464,10 +501,17 @@ cfg_insert (hashtable_t *ht, cfg_t *CFG, instr_t *ins)
 	if (!new)
 		{
 		new = cfg_new (ht, ins);
+		if (CFG->instruction->type == 2)
+		{
+			stack[depth] = CFG;
+			depth++;
+		}
 		return aux_cfg_insert(CFG, new);
 		}
 else
 	{
+		if (CFG->instruction->type == 2)
+			depth++;
     instr_delete (ins);
 		for (size_t i = 0; i < CFG->nb_out; i++)
 			{

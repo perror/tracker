@@ -443,6 +443,7 @@ main (int argc, char *argv[], char *envp[])
 									 	{
 											/* Create a new trace and store it */
 											cfg = cfg_new (ht, instr);
+
 											if (!cfg)
 											{
 												hashtable_delete (ht);
