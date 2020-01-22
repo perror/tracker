@@ -92,7 +92,7 @@ trace_t *trace_compare (trace_t *t1, trace_t *t2);
 
 
 
-cfg_t *cfg_new (instr_t *ins);
+cfg_t *cfg_new (hashtable_t *ht, instr_t *ins);
 
 cfg_t *aux_cfg_insert (cfg_t *CFG, cfg_t *new);
 

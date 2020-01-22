@@ -347,7 +347,7 @@ trace_compare (trace_t *t1, trace_t *t2)
 
 
 cfg_t *
-cfg_new (instr_t *ins)
+cfg_new (hashtable_t *ht, instr_t *ins)
 {
 	cfg_t *CFG = malloc (sizeof (cfg_t));
 	if (!CFG)
@@ -364,13 +364,6 @@ cfg_new (instr_t *ins)
 					cfg_delete (CFG);
 					return NULL;
 				}
-			CFG->successor[0] = calloc (1, sizeof (cfg_t));
-			if (!CFG->successor[0])
-			{
-				cfg_delete (CFG);
-				return NULL;
-			}
-			CFG->successor[0] = NULL;
 			break;
 		case 1:
 			CFG->successor = calloc (2, sizeof (cfg_t *));
@@ -379,32 +372,9 @@ cfg_new (instr_t *ins)
 				cfg_delete (CFG);
 				return NULL;
 			}
-			for (int i = 0; i < 2; i++)
-				{
-					CFG->successor[i] = calloc (1, sizeof (cfg_t));
-					if (!CFG->successor[i])
-					{
-						cfg_delete (CFG);
-						return NULL;
-					}
-				}
-			CFG->successor[0] = NULL;
 			break;
 		case 2:
 			CFG->successor = calloc (1, sizeof (cfg_t *));
-			if (!CFG->successor)
-			{
-				cfg_delete (CFG);
-				return NULL;
-			}
-			CFG->successor[0] = calloc (1, sizeof (cfg_t));
-			if (!CFG->successor[0])
-			{
-				cfg_delete (CFG);
-				return NULL;
-			}
-			CFG->successor[0] = NULL;
-			break;
 			if (!CFG->successor)
 			{
 				cfg_delete (CFG);
@@ -418,18 +388,9 @@ cfg_new (instr_t *ins)
 				cfg_delete (CFG);
 				return NULL;
 			}
-			for (int i = 0; i < 2; i++)
-				{
-					CFG->successor[i] = calloc (1, sizeof (cfg_t));
-					if (!CFG->successor[i])
-					{
-						cfg_delete (CFG);
-						return NULL;
-					}
-				}
-			CFG->successor[0] = NULL;
 			break;
 	}
+	hashtable_insert (ht, CFG);
 	return CFG;
 }
 
@@ -462,10 +423,16 @@ aux_cfg_insert (cfg_t *CFG, cfg_t *new)
 		{
 			if (CFG->instruction->type == 1)
 				{
-					if (!CFG->successor[1])
+					if (CFG->nb_out == 2)
 						return NULL;
 					else
 						{
+						CFG->successor = realloc (CFG->successor, 2 * sizeof (cfg_t *));
+						if (!CFG->successor)
+						{
+							cfg_delete (CFG);
+							return NULL;
+						}
 							CFG->successor[1] = new;
 							CFG->nb_out++;
 							new->nb_in++;
@@ -496,8 +463,7 @@ cfg_insert (hashtable_t *ht, cfg_t *CFG, instr_t *ins)
 	cfg_t *new = hashtable_lookup (ht, ins);
 	if (!new)
 		{
-		new = cfg_new (ins);
-    hashtable_insert (ht, new);
+		new = cfg_new (ht, ins);
 		return aux_cfg_insert(CFG, new);
 		}
 else

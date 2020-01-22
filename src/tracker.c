@@ -438,7 +438,7 @@ main (int argc, char *argv[], char *envp[])
 									if (!cfg)
 									 	{
 											/* Create a new trace and store it */
-											cfg = cfg_new (instr);
+											cfg = cfg_new (ht, instr);
 											if (!cfg)
 											{
 												cfg_delete (cfg);
