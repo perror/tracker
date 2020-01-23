@@ -438,9 +438,6 @@ aux_cfg_insert (cfg_t *CFG, cfg_t *new)
     {
       switch (CFG->instruction->type)
         {
-        case 0:
-          return NULL;
-          break;
         case 1:
           if (CFG->nb_out == 2)
             return NULL;
