@@ -305,7 +305,7 @@ main (int argc, char *argv[], char *envp[])
 						{
 							size_t token_length = strlen (token);
 							if (token[token_length - 1] == '\n')
-								token[token_length - 1] = '\0'; /* Formating trick */
+								token[token_length - 1] = '\0'; /* Formatting trick */
 							exec_argv[index] = token;
 							index++;
 							token = strtok (NULL, " ");
@@ -319,9 +319,7 @@ main (int argc, char *argv[], char *envp[])
 				  /* Display the traced command */
 				  fprintf (output, "%s: starting to trace '", program_name);
 				  for (int i = 0; i < exec_argc - 1; i++)
-				    {
-				      fprintf (output, "%s ", exec_argv[i]);
-				    }
+				    fprintf (output, "%s ", exec_argv[i]);
 				  fprintf (output, "%s'\n\n", exec_argv[exec_argc - 1]);
 
 				  /* Forking and tracing */
@@ -445,13 +443,13 @@ main (int argc, char *argv[], char *envp[])
 											cfg = cfg_new (ht, instr);
 
 											if (!cfg)
-											{
-												hashtable_delete (ht);
-												cs_close (&handle);
-												fclose (input);
-												fclose (output);
-									 			err (EXIT_FAILURE, "error: cannot create a control flow graph");
-											}
+  											{
+  												hashtable_delete (ht);
+  												cs_close (&handle);
+  												fclose (input);
+  												fclose (output);
+  									 			err (EXIT_FAILURE, "error: cannot create a control flow graph");
+  											}
 									 		cfg_entry = cfg;
 										}
 									else
@@ -460,13 +458,13 @@ main (int argc, char *argv[], char *envp[])
 											 * the new node */
 											cfg = cfg_insert (ht, cfg, instr);
 											if (!cfg)
-											{
-												hashtable_delete (ht);
-												cs_close (&handle);
-												fclose (input);
-												fclose (output);
-												err (EXIT_FAILURE, "error: cannot create a control flow graph");
-											}
+  											{
+  												hashtable_delete (ht);
+  												cs_close (&handle);
+  												fclose (input);
+  												fclose (output);
+  												err (EXIT_FAILURE, "error: cannot create a control flow graph");
+  											}
 										}
 
 					  			/* Updating counters */

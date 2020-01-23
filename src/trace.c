@@ -44,17 +44,18 @@ instr_new (const uintptr_t addr, const uint8_t size, const uint8_t *opcodes)
   memcpy (instr->opcodes, opcodes, size);
 
 	if ((opcodes[0] >= 0x70 && opcodes[0] <= 0x7F)
-	|| (opcodes[0] == 0x0F && opcodes[1] >= 0x80 && opcodes[1] <= 0x8F))
-		instr->type = 1;
-	else if (opcodes[0] == 0xE8 || opcodes[0] == 0x9A
-		|| (opcodes[0] == 0xFF && (size == 2 || size == 3)))
+			|| (opcodes[0] == 0x0F && opcodes[1] >= 0x80 && opcodes[1] <= 0x8F))
+    instr->type = 1;
+	else if (opcodes[0] == 0xE8
+          || opcodes[0] == 0x9A
+		      || (opcodes[0] == 0xFF && (size == 2 || size == 3)))
 		instr->type = 2;
 	else if ((opcodes[0] >= 0xE9 && opcodes[0] <= 0xEB)
-	|| (opcodes[0] == 0xFF && (size == 4 || size == 5)))
+	         || (opcodes[0] == 0xFF && (size == 4 || size == 5)))
 		instr->type = 3;
-	else if (((opcodes[0] == 0xC3 || opcodes[0] == 0xCB) && size == 1) ||
-	 ((opcodes[0] == 0xC2 || opcodes[0] == 0xCA) && size == 3))
-	 instr->type = 4;
+	else if (((opcodes[0] == 0xC3 || opcodes[0] == 0xCB) && size == 1)
+          || ((opcodes[0] == 0xC2 || opcodes[0] == 0xCA) && size == 3))
+	  instr->type = 4;
 	else
 		instr->type = 0;
   return instr;
@@ -91,7 +92,7 @@ struct _hashtable_t
   size_t size;          /* Hashtable size */
   size_t collisions;    /* Number of collisions encountered */
   size_t entries;       /* Number of entries registered */
-  cfg_t ** buckets[]; /* Hachtable buckets */
+  cfg_t ** buckets[];   /* Hachtable buckets */
 };
 
 
@@ -109,10 +110,12 @@ uint16_t nb_name = 0;
 cfg_t *stack[256] = {NULL};
 
 /* Compression function for Merkle-Damgard construction */
-#define mix(h) ({				\
-		(h) ^= (h) >> 23;		\
-		(h) *= 0x2127598bf4325c37ULL;	\
-		(h) ^= (h) >> 47; })
+#define mix(h)                                                                 \
+  ({                                                                           \
+    (h) ^= (h) >> 23ULL;                                                       \
+    (h) *= 0x2127598bf4325c37ULL;                                              \
+    (h) ^= (h) >> 47ULL;                                                       \
+  })
 
 uint64_t
 fasthash64 (const uint8_t *buf, size_t len, uint64_t seed)
@@ -125,32 +128,34 @@ fasthash64 (const uint8_t *buf, size_t len, uint64_t seed)
   uint64_t h = seed ^ (len * m);
   uint64_t v;
 
-  while (pos != end) {
-    v  = *pos++;
-    h ^= mix(v);
-    h *= m;
-  }
+  while (pos != end)
+    {
+      v  = *pos++;
+      h ^= mix(v);
+      h *= m;
+    }
 
   pos2 = (const uint8_t *) pos;
   v = 0;
 
-  switch (len & 7) {
-  case 7: v ^= (uint64_t) pos2[6] << 48;
-    /* FALLTHROUGH */
-  case 6: v ^= (uint64_t) pos2[5] << 40;
-    /* FALLTHROUGH */
-  case 5: v ^= (uint64_t) pos2[4] << 32;
-    /* FALLTHROUGH */
-  case 4: v ^= (uint64_t) pos2[3] << 24;
-    /* FALLTHROUGH */
-  case 3: v ^= (uint64_t) pos2[2] << 16;
-    /* FALLTHROUGH */
-  case 2: v ^= (uint64_t) pos2[1] << 8;
-    /* FALLTHROUGH */
-  case 1: v ^= (uint64_t) pos2[0];
-    h ^= mix(v);
-    h *= m;
-  }
+  switch (len & 7)
+    {
+    case 7: v ^= (uint64_t) pos2[6] << 48;
+      /* FALLTHROUGH */
+    case 6: v ^= (uint64_t) pos2[5] << 40;
+      /* FALLTHROUGH */
+    case 5: v ^= (uint64_t) pos2[4] << 32;
+      /* FALLTHROUGH */
+    case 4: v ^= (uint64_t) pos2[3] << 24;
+      /* FALLTHROUGH */
+    case 3: v ^= (uint64_t) pos2[2] << 16;
+      /* FALLTHROUGH */
+    case 2: v ^= (uint64_t) pos2[1] << 8;
+      /* FALLTHROUGH */
+    case 1: v ^= (uint64_t) pos2[0];
+      h ^= mix(v);
+      h *= m;
+    }
 
   return mix(h);
 }
@@ -175,7 +180,7 @@ hashtable_new (const size_t size)
     return NULL;
 
   /* Initialize to zero */
-  *ht = (hashtable_t) { 0 };
+  *ht = (hashtable_t) {0};
   ht->size = size;
   ht->collisions = 0;
   ht->entries = 0;
@@ -193,17 +198,13 @@ hashtable_delete (hashtable_t *ht)
 			if (ht->buckets[i])
 				{
 					while (ht->buckets[i][j] != NULL)
-						{
-							cfg_delete (ht->buckets[i][j]);
-							j++;
-						}
+						cfg_delete (ht->buckets[i][j++]);
 					free (ht->buckets[i]);
 				}
 		}
   free (ht);
 }
 
-#include <stdio.h>
 
 bool
 hashtable_insert (hashtable_t * ht, cfg_t *CFG)
@@ -230,11 +231,9 @@ hashtable_insert (hashtable_t * ht, cfg_t *CFG)
   /* Bucket isn't NULL, scanning all entries to see if instr is already here */
   size_t k = 0;
   while (ht->buckets[index][k] != NULL)
-	{
-    if (ht->buckets[index][k]->instruction->address == CFG->instruction->address)
+    if (ht->buckets[index][k++]->instruction->address
+        == CFG->instruction->address)
 			return true; /* No error but we need to delete the redundant one */
-		k++;
-	}
   cfg_t **new_bucket = calloc (k + 2, sizeof (cfg_t *));
   if (!new_bucket)
 		return false;
@@ -327,7 +326,7 @@ trace_delete (trace_t *t)
 	while (tmp->next)
 		{
 			tmp = tmp->next;
-			free(t);
+			free (t);
 			t = tmp;
 		}
 	free(t);
@@ -366,7 +365,7 @@ cfg_new (hashtable_t *ht, instr_t *ins)
 	if (nb_name == 0)
 		CFG->name = 0;
 	switch (ins->type)
-	{
+	  {
 		case 0:
 			CFG->successor = calloc (1, sizeof (cfg_t *));
 			if (!CFG->successor)
@@ -378,31 +377,31 @@ cfg_new (hashtable_t *ht, instr_t *ins)
 		case 1:
 			CFG->successor = calloc (2, sizeof (cfg_t *));
 			if (!CFG->successor)
-			{
-				cfg_delete (CFG);
-				return NULL;
-			}
+  			{
+  				cfg_delete (CFG);
+  				return NULL;
+  			}
 			break;
 		case 2:
 			CFG->successor = calloc (2, sizeof (cfg_t *));
 			if (!CFG->successor)
-			{
-				cfg_delete (CFG);
-				return NULL;
-			}
+  			{
+  				cfg_delete (CFG);
+  				return NULL;
+  			}
 			break;
 		case 3:
 			CFG->successor = calloc (2, sizeof (cfg_t *));
 			if (!CFG->successor)
-			{
-				cfg_delete (CFG);
-				return NULL;
-			}
+  			{
+  				cfg_delete (CFG);
+  				return NULL;
+  			}
 			break;
 		case 4:
 			CFG->successor = NULL;
 			break;
-	}
+    }
 	hashtable_insert (ht, CFG);
 	return CFG;
 }
@@ -433,8 +432,9 @@ aux_cfg_insert (cfg_t *CFG, cfg_t *new)
 			new->nb_in++;
 			new->name = CFG->name;
 		}
-	else if (CFG->instruction->type == 1 || CFG->instruction->type == 3
-	|| CFG->instruction->type == 4)
+	else if (CFG->instruction->type == 1
+           || CFG->instruction->type == 3
+	         || CFG->instruction->type == 4)
 		{
 			if (CFG->instruction->type == 1)
 				{
@@ -443,15 +443,15 @@ aux_cfg_insert (cfg_t *CFG, cfg_t *new)
 					else
 						{
 					//	CFG->successor = realloc (CFG->successor, 2 * sizeof (cfg_t *));
-						if (!CFG->successor)
-						{
-							cfg_delete (CFG);
-							return NULL;
-						}
-							CFG->successor[1] = new;
-							CFG->nb_out++;
-							new->nb_in++;
-							new->name = CFG->name;
+  						if (!CFG->successor)
+    						{
+    							cfg_delete (CFG);
+    							return NULL;
+    						}
+  						CFG->successor[1] = new;
+  						CFG->nb_out++;
+  						new->nb_in++;
+  						new->name = CFG->name;
 						}
 				}
 				if (CFG->instruction->type == 4)
@@ -530,9 +530,9 @@ cfg_delete (cfg_t *CFG)
 	if (CFG)
 		{
 			if (CFG->instruction)
-			{
-				instr_delete (CFG->instruction);
-			}
+  			{
+  				instr_delete (CFG->instruction);
+  			}
 			if (CFG->successor)
 				free (CFG->successor);
 			free (CFG);

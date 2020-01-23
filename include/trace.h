@@ -41,21 +41,20 @@ typedef struct _trace_t trace_t;
 /* ***** instr_t functions ***** */
 
 /* Return a new instr_t struct, NULL otherwise (and set errno) */
-instr_t *instr_new (const uintptr_t addr,
-		    const uint8_t size,
-		    const uint8_t *opcodes);
+instr_t *instr_new (const uintptr_t addr, const uint8_t size,
+                    const uint8_t *opcodes);
 
 /* Delete the assembly instruction from memory */
 void instr_delete (instr_t *instr);
 
 /* Get the address of the instruction */
-uintptr_t instr_get_addr (instr_t * const instr);
+uintptr_t instr_get_addr (instr_t *const instr);
 
 /* Get the size (in bytes) of the instruction */
-size_t instr_get_size (instr_t * const instr);
+size_t instr_get_size (instr_t *const instr);
 
 /* Get a pointer to the opcodes of the instruction */
-uint8_t * instr_get_opcodes (instr_t * const instr);
+uint8_t * instr_get_opcodes (instr_t *const instr);
 
 
 /* ***** hashtable_t functions ***** */
@@ -70,7 +69,7 @@ hashtable_t *hashtable_new (const size_t size);
 void hashtable_delete (hashtable_t *ht);
 
 /* Insert the instruction in the hashtable */
-bool hashtable_insert (hashtable_t * ht, cfg_t *cfg);
+bool hashtable_insert (hashtable_t *ht, cfg_t *cfg);
 
 /* Look-up if current instruction is already in the hashtable */
 cfg_t *hashtable_lookup (hashtable_t *ht, instr_t *instr);
