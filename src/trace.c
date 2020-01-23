@@ -425,71 +425,67 @@ aux_cfg_insert (cfg_t *CFG, cfg_t *new)
 {
 	if (!new)
 		return NULL;
-	if (CFG->instruction->type != 4 && !CFG->successor[0])
-		{
-			CFG->successor[0] = new;
+  if (CFG->instruction->type != 4 && !CFG->successor[0])
+	  {
+		  CFG->successor[0] = new;
 			CFG->nb_out++;
 			new->nb_in++;
 			new->name = CFG->name;
 		}
-	else if (CFG->instruction->type == 1
-           || CFG->instruction->type == 3
-	         || CFG->instruction->type == 4)
-		{
-			if (CFG->instruction->type == 1)
-				{
-					if (CFG->nb_out == 2)
-						return NULL;
-					else
-						{
-					//	CFG->successor = realloc (CFG->successor, 2 * sizeof (cfg_t *));
-  						if (!CFG->successor)
-    						{
-    							cfg_delete (CFG);
-    							return NULL;
-    						}
-  						CFG->successor[1] = new;
-  						CFG->nb_out++;
-  						new->nb_in++;
-  						new->name = CFG->name;
-						}
-				}
-				if (CFG->instruction->type == 4)
-					{
-						depth--;
-						CFG = stack[depth];
-						stack[depth] = NULL;
-
-
-							if (is_power_2 (CFG->nb_out))
-								CFG->successor = realloc (CFG->successor, 2 * CFG->nb_out * sizeof (cfg_t *));
-							if (!CFG->successor)
-							{
-								cfg_delete (CFG);
-								return NULL;
-							}
-								CFG->successor[1] = new;
-								CFG->nb_out++;
-								new->nb_in++;
-								new->name = CFG->name;
-
-					}
-			if (CFG->instruction->type == 3)
-				{
-					if (is_power_2 (CFG->nb_out))
-						CFG->successor = realloc (CFG->successor, 2 * CFG->nb_out * sizeof (cfg_t *));
-					if (!CFG->successor)
-					{
-						cfg_delete (CFG);
-						return NULL;
-					}
-					CFG->successor[CFG->nb_out] = new;
-					CFG->nb_out++;
-					new->nb_in++;
-					new->name = CFG->name;
-				}
-			}
-		return new;
+  else
+    {
+      switch (CFG->instruction->type)
+        {
+        case 0:
+          return NULL;
+          break;
+        case 1:
+          if (CFG->nb_out == 2)
+            return NULL;
+          if (!CFG->successor)
+            {
+              cfg_delete (CFG);
+              return NULL;
+            }
+          CFG->successor[1] = new;
+          CFG->nb_out++;
+          new->nb_in++;
+          new->name = CFG->name;
+          break;
+        case 2:
+          /* TODO */
+          break;
+        case 3:
+          if (is_power_2 (CFG->nb_out))
+            CFG->successor = realloc (CFG->successor, 2 * CFG->nb_out * sizeof (cfg_t *));
+          if (!CFG->successor)
+            {
+              cfg_delete (CFG);
+              return NULL;
+            }
+          CFG->successor[CFG->nb_out] = new;
+          CFG->nb_out++;
+          new->nb_in++;
+          new->name = CFG->name;
+          break;
+        case 4:
+          depth--;
+          CFG = stack[depth];
+          stack[depth] = NULL;
+          if (is_power_2 (CFG->nb_out))
+            CFG->successor = realloc (CFG->successor, 2 * CFG->nb_out * sizeof (cfg_t *));
+          if (!CFG->successor)
+            {
+              cfg_delete (CFG);
+              return NULL;
+            }
+          CFG->successor[1] = new;
+          CFG->nb_out++;
+          new->nb_in++;
+          new->name = CFG->name;
+        }
+    }
+    return new;
 }
 
 cfg_t *
