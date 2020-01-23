@@ -54,7 +54,9 @@ instr_new (const uintptr_t addr, const uint8_t size, const uint8_t *opcodes)
 	         || (opcodes[0] == 0xFF && (size == 4 || size == 5)))
 		instr->type = 3;
 	else if (((opcodes[0] == 0xC3 || opcodes[0] == 0xCB) && size == 1)
-          || ((opcodes[0] == 0xC2 || opcodes[0] == 0xCA) && size == 3))
+          || ((opcodes[0] == 0xC2 || opcodes[0] == 0xCA) && size == 3)
+          || (opcodes[0] == 0xF3 && opcodes[1] == 0xC3 && size == 3))
+
 	  instr->type = 4;
 	else
 		instr->type = 0;
