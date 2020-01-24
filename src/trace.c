@@ -401,12 +401,13 @@ cfg_new (hashtable_t *ht, instr_t *ins)
   			}
 			break;
 		case 4:
-      CFG->successor = calloc (1, sizeof (cfg_t *));
+      CFG->successor = calloc (2, sizeof (cfg_t *));
       if (!CFG->successor)
         {
           cfg_delete (CFG);
           return NULL;
         }
+		//	CFG->successor = NULL;
 			break;
     }
 	hashtable_insert (ht, CFG);
@@ -471,18 +472,27 @@ aux_cfg_insert (cfg_t *CFG, cfg_t *new)
           break;
         case 4:
           depth--;
-          if (new->instruction->address == stack[depth]->instruction->address + stack[depth]->instruction->size)
+          if (new->instruction->address
+						== stack[depth]->instruction->address + stack[depth]->instruction->size)
           {
+					//	printf("entré ici \n");
           CFG = stack[depth];
           stack[depth] = NULL;
+				}
           if (is_power_2 (CFG->nb_out))
+					{
+
             CFG->successor = realloc (CFG->successor, 2 * CFG->nb_out * sizeof (cfg_t *));
+
+					}
+
           if (!CFG->successor)
             {
               cfg_delete (CFG);
               return NULL;
             }
-          }
+
+				//	printf("coucou, %d \n",CFG->nb_out);
           CFG->successor[CFG->nb_out] = new;
           CFG->nb_out++;
           new->nb_in++;
