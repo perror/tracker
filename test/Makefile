@@ -10,7 +10,21 @@ LDFLAGS  = -lcapstone
 all: tracker_tests
 
 tracker_tests:
-	@echo "TODO: Tests are not yet implemented!"
+	gcc -o if if.c $(CFLAGS)
+	gcc -o while while.c $(CFLAGS)
+	gcc -o switch switch.c $(CFLAGS)
+	gcc -o printf printf.c $(CFLAGS)
+	gcc -o call call.c $(CFLAGS)
+	@echo -e "if 0\nif 44\nif -44\n" > input_if.txt
+	@echo -e "while 12\nwhile 0\n" > input_while.txt
+	@echo -e "switch 3\nswitch 7\nswitch 11\n" > input_switch.txt
+	@echo -e "printf Neo\n" > input_printf.txt
+	@echo -e "call 1337\n" > input_call.txt
+	./tracker -o output_if.txt input_if.txt
+	./tracker -o output_while.txt input_while.txt
+	./tracker -o output_switch.txt input_switch.txt
+	./tracker -o output_printf.txt input_printf.txt
+	./tracker -o output_call.txt input_call.txt
 
 clean:
 	@echo "src: Cleaning..."

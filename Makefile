@@ -10,6 +10,7 @@ all:
 	@cp -f src/tracker ./
 
 check: all
+	@cp tracker test/
 	@cd test/ && $(MAKE)
 
 format:
