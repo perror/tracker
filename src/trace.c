@@ -55,7 +55,7 @@ instr_new (const uintptr_t addr, const uint8_t size, const uint8_t *opcodes)
 		instr->type = 3;
 	else if (((opcodes[0] == 0xC3 || opcodes[0] == 0xCB) && size == 1)
           || ((opcodes[0] == 0xC2 || opcodes[0] == 0xCA) && size == 3)
-          || (opcodes[0] == 0xF3 && opcodes[1] == 0xC3 && size == 3))
+          || (opcodes[0] == 0xF3 && opcodes[1] == 0xC3 && size == 2))
 
 	  instr->type = 4;
 	else
@@ -401,7 +401,12 @@ cfg_new (hashtable_t *ht, instr_t *ins)
   			}
 			break;
 		case 4:
-			CFG->successor = NULL;
+      CFG->successor = calloc (1, sizeof (cfg_t *));
+      if (!CFG->successor)
+        {
+          cfg_delete (CFG);
+          return NULL;
+        }
 			break;
     }
 	hashtable_insert (ht, CFG);
@@ -451,9 +456,6 @@ aux_cfg_insert (cfg_t *CFG, cfg_t *new)
           new->nb_in++;
           new->name = CFG->name;
           break;
-        case 2:
-          /* TODO */
-          break;
         case 3:
           if (is_power_2 (CFG->nb_out))
             CFG->successor = realloc (CFG->successor, 2 * CFG->nb_out * sizeof (cfg_t *));
@@ -469,6 +471,8 @@ aux_cfg_insert (cfg_t *CFG, cfg_t *new)
           break;
         case 4:
           depth--;
+          if (new->instruction->address == stack[depth]->instruction->address + stack[depth]->instruction->size)
+          {
           CFG = stack[depth];
           stack[depth] = NULL;
           if (is_power_2 (CFG->nb_out))
@@ -478,10 +482,12 @@ aux_cfg_insert (cfg_t *CFG, cfg_t *new)
               cfg_delete (CFG);
               return NULL;
             }
-          CFG->successor[1] = new;
+          }
+          CFG->successor[CFG->nb_out] = new;
           CFG->nb_out++;
           new->nb_in++;
           new->name = CFG->name;
+          break;
         }
     }
     return new;
@@ -506,7 +512,10 @@ cfg_insert (hashtable_t *ht, cfg_t *CFG, instr_t *ins)
 else
 	{
 		if (CFG->instruction->type == 2)
-			depth++;
+      {
+        stack[depth] = CFG;
+			  depth++;
+      }
     instr_delete (ins);
 		for (size_t i = 0; i < CFG->nb_out; i++)
 			{
