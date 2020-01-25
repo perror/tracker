@@ -475,9 +475,12 @@ aux_cfg_insert (cfg_t *CFG, cfg_t *new)
           if (new->instruction->address
 						== stack[depth]->instruction->address + stack[depth]->instruction->size)
           {
-					//	printf("entré ici \n");
           CFG = stack[depth];
           stack[depth] = NULL;
+				}
+				else
+				{
+					depth++;
 				}
           if (is_power_2 (CFG->nb_out))
 					{
@@ -491,8 +494,6 @@ aux_cfg_insert (cfg_t *CFG, cfg_t *new)
               cfg_delete (CFG);
               return NULL;
             }
-
-				//	printf("coucou, %d \n",CFG->nb_out);
           CFG->successor[CFG->nb_out] = new;
           CFG->nb_out++;
           new->nb_in++;
