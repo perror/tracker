@@ -22,6 +22,7 @@
 #include <unistd.h>
 
 #include <err.h>
+#include <errno.h>
 #include <getopt.h>
 #include <libgen.h>
 #include <string.h>
@@ -123,7 +124,7 @@ main (int argc, char *argv[], char *envp[])
 
   /* Options parser settings */
   opterr = 0; /* Mute error message from getopt() */
-  const char *opts = "dio:vVh";
+  const char *opts = "dhio:vV";
 
   bool intel = false;
 
@@ -316,7 +317,14 @@ main (int argc, char *argv[], char *envp[])
 	    err (EXIT_FAILURE, "error:");
 
 	  if (!hashtable_insert (ht, instr))
-	    instr_delete (instr);
+	    {
+	      if (errno != 0)
+		err (EXIT_FAILURE, "error:");
+	      instr_delete (instr);
+	    }
+
+	  /* Free capstone instruction structure */
+	  cs_free (insn, count);
 
 	  /* Updating counters */
 	  instr_count++;
@@ -334,13 +342,16 @@ main (int argc, char *argv[], char *envp[])
 	   "\n"
 	   "\tStatistics about this run\n"
 	   "\t=========================\n"
-	   "* #instructions executed: %zu\n"
-	   "* #unique instructions:   %zu\n"
-	   "* #hashtable buckets:     %zu\n"
-	   "* #hashtable collisions:  %zu\n",
+	   "* #instructions executed:    %zu\n"
+	   "* #unique instructions:      %zu\n"
+	   "* #hashtable buckets:        %zu\n"
+	   "* #hashtable filled buckets: %zu\n"
+	   "* #hashtable collisions:     %zu\n",
 	   instr_count, hashtable_entries (ht), (size_t) DEFAULT_HASHTABLE_SIZE,
-	   hashtable_collisions (ht));
+	   hashtable_filled_buckets (ht), hashtable_collisions (ht));
 
+  /* Cleaning memory */
+  cs_close (&handle);
   hashtable_delete (ht);
 
   return EXIT_SUCCESS;

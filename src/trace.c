@@ -15,6 +15,8 @@
 #include <errno.h>
 #include <string.h>
 
+/* **********[ Instruction Data-structure ]********** */
+
 struct _instr_t
 {
   uintptr_t address; /* Address where lies the instruction */
@@ -69,11 +71,11 @@ instr_get_opcodes (instr_t *const instr)
   return instr->opcodes;
 }
 
-/* Hashtable implementation */
+/* **********[ Hashtable Data-structure ]********** */
 
 struct _hashtable_t
 {
-  size_t size;	       /* Hashtable size */
+  size_t size;	 /* Hashtable size */
   size_t collisions;   /* Number of collisions encountered */
   size_t entries;      /* Number of entries registered */
   instr_t **buckets[]; /* Hachtable buckets */
@@ -174,8 +176,6 @@ hashtable_delete (hashtable_t *ht)
   free (ht);
 }
 
-#include <stdio.h>
-
 bool
 hashtable_insert (hashtable_t *ht, instr_t *instr)
 {
@@ -193,6 +193,7 @@ hashtable_insert (hashtable_t *ht, instr_t *instr)
       ht->buckets[index] = calloc (2, sizeof (instr_t *));
       if (ht->buckets[index] == NULL)
 	return false;
+
       ht->buckets[index][0] = instr;
       ht->entries++;
       return true;
@@ -207,6 +208,7 @@ hashtable_insert (hashtable_t *ht, instr_t *instr)
   instr_t **new_bucket = calloc (k + 2, sizeof (instr_t *));
   if (!new_bucket)
     return false;
+
   ht->collisions++;
   ht->entries++;
   memcpy (new_bucket, ht->buckets[index], k * sizeof (instr_t *));
@@ -221,7 +223,10 @@ bool
 hashtable_lookup (hashtable_t *ht, instr_t *instr)
 {
   if (!ht)
-    return false;
+    {
+      errno = EINVAL;
+      return false;
+    }
 
   size_t index = hash_instr (instr) % ht->size;
 
@@ -250,6 +255,18 @@ hashtable_collisions (hashtable_t *ht)
   return ht->collisions;
 }
 
+size_t
+hashtable_filled_buckets (hashtable_t *ht)
+{
+  size_t count = 0;
+  for (size_t index = 0; index < ht->size; index++)
+    count += (ht->buckets[index] != NULL);
+
+  return count;
+}
+
+/* **********[ Trace Data-structure ]********** */
+
 struct _trace_t
 {
   hash_t h;      /* Index for the hash value of the instruction */
@@ -273,7 +290,10 @@ trace_t *
 trace_insert (trace_t *t, hash_t hash_index)
 {
   if (!t)
-    return NULL;
+    {
+      errno = EINVAL;
+      return NULL;
+    }
 
   trace_t *new = trace_new (hash_index);
   if (!new)
@@ -305,9 +325,14 @@ trace_delete (trace_t *t)
 trace_t *
 trace_compare (trace_t *t1, trace_t *t2)
 {
+  if (!t1 || !t2)
+    {
+      errno = EINVAL;
+      return NULL;
+    }
+
   trace_t *tmp1 = t1;
   trace_t *tmp2 = t2;
-
   while (tmp1->h == tmp2->h)
     {
       tmp1 = tmp1->next;

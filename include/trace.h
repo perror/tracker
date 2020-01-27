@@ -66,6 +66,9 @@ size_t hashtable_entries (hashtable_t *ht);
 /* Count the number of collisions in the hashtable */
 size_t hashtable_collisions (hashtable_t *ht);
 
+/* Count the number of non empty buckets in the hashtable */
+size_t hashtable_filled_buckets (hashtable_t *ht);
+
 /* ***** Linked list to store an execution trace ***** */
 
 typedef struct _trace_t trace_t;
