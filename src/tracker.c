@@ -314,7 +314,7 @@ main (int argc, char *argv[], char *envp[])
 	  /* Create the instr_t structure */
 	  instr_t *instr = instr_new (ip, insn[0].size, buf);
 	  if (!instr)
-	    err (EXIT_FAILURE, "error:");
+	    err (EXIT_FAILURE, "error: cannot create instruction: ");
 
 	  if (!hashtable_insert (ht, instr))
 	    {
