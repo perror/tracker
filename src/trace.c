@@ -505,7 +505,7 @@ aux_cfg_insert (cfg_t *CFG, cfg_t *new)
 }
 
 cfg_t *
-cfg_insert (hashtable_t *ht, cfg_t *CFG, instr_t *ins)
+cfg_insert (hashtable_t *ht, cfg_t *CFG, instr_t *ins, char *name[],Agraph_t *g )
 {
 	if (!CFG)
 		return NULL;
@@ -518,6 +518,7 @@ cfg_insert (hashtable_t *ht, cfg_t *CFG, instr_t *ins)
 			stack[depth] = CFG;
 			depth++;
 		}
+
 		return aux_cfg_insert(CFG, new);
 		}
 else
@@ -534,6 +535,7 @@ else
 					 == new->instruction->address)
 					return new;
 			}
+
 		return aux_cfg_insert(CFG, new);
 	}
 }
@@ -553,4 +555,28 @@ cfg_delete (cfg_t *CFG)
 			free (CFG);
 		}
 	return;
+}
+
+instr_t *
+cfg_get_instr (cfg_t *CFG)
+{
+  return CFG->instruction;
+}
+
+uint8_t
+cfg_get_type (cfg_t *CFG)
+{
+  return CFG->instruction->type;
+}
+
+uint16_t
+cfg_get_name (cfg_t *CFG)
+{
+  return CFG->name;
+}
+
+cfg_t **
+cfg_get_successor (cfg_t *CFG)
+{
+  return CFG->successor;
 }

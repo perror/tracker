@@ -11,6 +11,7 @@
  */
 
 #include "tracker.h"
+#include "../graphviz/cgraph.h"
 
 #define _POSIX_C_SOURCE 200809L
 
@@ -57,6 +58,8 @@ static bool verbose = false;    /* 'verbose' option flag */
 static FILE *output = NULL;     /* output file (default: stdout) */
 /* input file containing executable's name and argument */
 static FILE *input = NULL;
+
+static FILE *fp = NULL;
 
 /* Get the architecture of the executable */
 static arch_t
@@ -195,6 +198,20 @@ get_text_info (const char *execfilename, uint64_t *text_addr, uint64_t *text_siz
   return;
 }
 
+
+Agraph_t *
+graph_create(Agraph_t *g, char *name_old, char *name_new)
+{
+  Agnode_t *n, *m;
+  Agedge_t *f;
+  n = agnode (g, name_old, TRUE);
+  m = agnode (g, name_new, TRUE);
+  f = agedge(g,n,m,NULL, TRUE);
+  return g;
+}
+
+
+
 int
 main (int argc, char *argv[], char *envp[])
 {
@@ -290,6 +307,11 @@ main (int argc, char *argv[], char *envp[])
 	cfg_t *cfg = NULL;
 	cfg_t *cfg_entry = NULL;
 	hashtable_t *ht = hashtable_new (DEFAULT_HASHTABLE_SIZE);
+  fp = fopen("toto.gv", "w+");
+  Agraph_t *g;
+  g = agopen ("G", Agdirected, NULL);
+  char *to_keep[2];
+
 	if (ht == NULL)
 		err (EXIT_FAILURE, "error: cannot create hashtable");
 
@@ -411,7 +433,7 @@ main (int argc, char *argv[], char *envp[])
 								{
 					  			/* Display the bytes */
 					  			for (size_t i = 0; i < insn[0].size; i++)
-					    		fprintf (output, " %02x", buf[i]);
+					    		       fprintf (output, " %02x", buf[i]);
 
 					  			/* Pretty printing and formating */
 					  			if (insn[0].size != 8 && insn[0].size != 11)
@@ -423,6 +445,14 @@ main (int argc, char *argv[], char *envp[])
 					  			/* Display mnemonic and operand */
 					  			fprintf (output, "%s  %s", insn[0].mnemonic, insn[0].op_str);
 					  			fprintf (output, "\n");
+
+
+                  char name_node[128];
+                  sprintf(name_node,"0x%" PRIxPTR  "  ", ip);
+                  for (size_t i = 0; i < 8; i++)
+                    sprintf(name_node + strlen(name_node), "%02x ", buf[i]);
+                  sprintf(name_node + strlen(name_node), " %s ",insn[0].mnemonic);
+                  sprintf(name_node + strlen(name_node), "%s ",insn[0].op_str);
 
 					  			/* Create the instr_t structure */
 					  			instr_t *instr = instr_new (ip, insn[0].size, buf);
@@ -441,6 +471,7 @@ main (int argc, char *argv[], char *envp[])
 									 	{
 											/* Create a new trace and store it */
 											cfg = cfg_new (ht, instr);
+                      to_keep[0] = name_node;
 
 											if (!cfg)
   											{
@@ -456,7 +487,10 @@ main (int argc, char *argv[], char *envp[])
 										{
 											/* Insert a new element in the cfg and update cfg to hold
 											 * the new node */
-											cfg = cfg_insert (ht, cfg, instr);
+                      to_keep[1] = name_node;
+											cfg = cfg_insert (ht, cfg, instr, to_keep,g);
+                      graph_create (g, to_keep[0], to_keep[1]);
+                      to_keep[0] = name_node;
 											if (!cfg)
   											{
   												hashtable_delete (ht);
@@ -495,5 +529,7 @@ main (int argc, char *argv[], char *envp[])
 	fclose (input);
 	fclose (output);
 	hashtable_delete (ht);
+  agwrite(g, fp);
+  agclose(g);
   return EXIT_SUCCESS;
 }

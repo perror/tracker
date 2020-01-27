@@ -13,6 +13,7 @@
 #ifndef _TRACE_H
 #define _TRACE_H
 
+#include "../graphviz/cgraph.h"
 #include <inttypes.h>
 #include <stdbool.h>
 #include <stdlib.h>
@@ -109,10 +110,18 @@ cfg_t *aux_cfg_insert (cfg_t *CFG, cfg_t *new);
 
 /* Creates an element initialized with ins and insert it in CFG's succesors
 Returns a pointer to the created element or NULL if an error occured*/
-cfg_t *cfg_insert (hashtable_t *ht, cfg_t *CFG, instr_t *ins);
+cfg_t *cfg_insert (hashtable_t *ht, cfg_t *CFG, instr_t *ins, char *name[],Agraph_t *g);
 
 /* Free every allocated field of CFG, as well as CFG itself */
 void cfg_delete (cfg_t *CFG);
 
+
+instr_t *cfg_get_instr (cfg_t *CFG);
+
+uint8_t cfg_get_type (cfg_t *CFG);
+
+uint16_t cfg_get_name (cfg_t *CFG);
+
+cfg_t **cfg_get_successor (cfg_t *CFG);
 
 #endif /* _TRACE_H */

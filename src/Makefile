@@ -1,7 +1,7 @@
 # Usual compilation flags
 CFLAGS   = -Wall -Wextra -std=c11 -DDEBUG -g
 CPPFLAGS = -I../include
-LDFLAGS  = -lcapstone
+LDFLAGS  = -lcapstone -lcgraph
 
 # Special rules and targets
 .PHONY: all clean help
