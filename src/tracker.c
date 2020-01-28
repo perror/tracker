@@ -125,7 +125,7 @@ get_current_ip (struct user_regs_struct *regs)
 #endif
 }
 
-void
+static void
 get_text_info (const char *execfilename, uint64_t *text_addr, uint64_t *text_size)
 {
   FILE *execfile = fopen (execfilename, "r");
@@ -199,7 +199,7 @@ get_text_info (const char *execfilename, uint64_t *text_addr, uint64_t *text_siz
 }
 
 
-Agraph_t *
+static Agraph_t *
 graph_create_function (Agraph_t *g, cfg_t *entry)
 {
   Agnode_t *n, *m;

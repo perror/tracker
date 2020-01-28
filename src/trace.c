@@ -51,7 +51,8 @@ instr_new (const uintptr_t addr, const uint8_t size, const uint8_t *opcodes)
 		       || (opcodes[0] == 0xFF && (size == 2 || size == 3)))
 		instr->type = CALL;
 	else if ((opcodes[0] >= 0xE9 && opcodes[0] <= 0xEB)
-	         || (opcodes[0] == 0xFF && (size == 4 || size == 5)))
+	         || (opcodes[0] == 0xFF && (size == 4 || size == 5))
+           || (opcodes[0] >= 0xE0 && opcodes[0] <= 0xE3))
 		instr->type = JUMP;
 	else if (((opcodes[0] == 0xC3 || opcodes[0] == 0xCB) && size == 1)
            || ((opcodes[0] == 0xC2 || opcodes[0] == 0xCA) && size == 3)
@@ -94,7 +95,7 @@ struct _hashtable_t
   size_t size;          /* Hashtable size */
   size_t collisions;    /* Number of collisions encountered */
   size_t entries;       /* Number of entries registered */
-  cfg_t ** buckets[];   /* Hachtable buckets */
+  cfg_t **buckets[];   /* Hachtable buckets */
 };
 
 
@@ -360,61 +361,30 @@ trace_compare (trace_t *t1, trace_t *t2)
 cfg_t *
 cfg_new (hashtable_t *ht, instr_t *ins, char *str)
 {
-	cfg_t *CFG = malloc (sizeof (cfg_t));
+  cfg_t *CFG = calloc (1, sizeof (cfg_t));
 	if (!CFG)
 		return NULL;
-	CFG->instruction =  ins;
+  if (ins->type == BASIC)
+    CFG->successor = calloc (1, sizeof (cfg_t));
+  else
+    CFG->successor = calloc (2, sizeof (cfg_t));
+  if (!CFG->successor)
+    {
+      cfg_delete (CFG);
+      return NULL;
+    }
+	CFG->instruction = ins;
 	CFG->nb_in = 0;
 	CFG->nb_out = 0;
   CFG->str_graph = calloc ((strlen (str) + 1), sizeof (char));
+  if (!CFG->str_graph)
+    {
+      cfg_delete (CFG);
+      return NULL;
+    }
   strcpy (CFG->str_graph, str);
-
 	if (nb_name == 0)
 		CFG->name = 0;
-	switch (ins->type)
-	  {
-		case 0:
-			CFG->successor = calloc (1, sizeof (cfg_t *));
-			if (!CFG->successor)
-				{
-					cfg_delete (CFG);
-					return NULL;
-				}
-			break;
-		case 1:
-			CFG->successor = calloc (2, sizeof (cfg_t *));
-			if (!CFG->successor)
-  			{
-  				cfg_delete (CFG);
-  				return NULL;
-  			}
-			break;
-		case 2:
-			CFG->successor = calloc (2, sizeof (cfg_t *));
-			if (!CFG->successor)
-  			{
-  				cfg_delete (CFG);
-  				return NULL;
-  			}
-			break;
-		case 3:
-			CFG->successor = calloc (2, sizeof (cfg_t *));
-			if (!CFG->successor)
-  			{
-  				cfg_delete (CFG);
-  				return NULL;
-  			}
-			break;
-		case 4:
-      CFG->successor = calloc (2, sizeof (cfg_t *));
-      if (!CFG->successor)
-        {
-          cfg_delete (CFG);
-          return NULL;
-        }
-		//	CFG->successor = NULL;
-			break;
-    }
 	hashtable_insert (ht, CFG);
 	return CFG;
 }
@@ -449,8 +419,12 @@ aux_cfg_insert (cfg_t *CFG, cfg_t *new)
     {
       switch (CFG->instruction->type)
         {
+        // case BASIC:
+        //   if (CFG->nb_out >= 1)
+        //     return NULL;
+        //   break;
         case BRANCH:
-          if (CFG->nb_out == 2)
+          if (CFG->nb_out >= 2)
             return NULL;
           if (!CFG->successor)
             {
@@ -559,6 +533,8 @@ cfg_delete (cfg_t *CFG)
   			}
 			if (CFG->successor)
 				free (CFG->successor);
+      if (CFG->str_graph)
+        free (CFG->str_graph);
 			free (CFG);
 		}
 	return;
