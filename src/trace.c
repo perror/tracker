@@ -104,12 +104,14 @@ struct _cfg_t
 	uint16_t nb_in;
 	uint16_t nb_out;
 	uint16_t name;
+  char *str_graph;
 	cfg_t **successor;
 };
 
 uint16_t depth = 0;
 uint16_t nb_name = 0;
 cfg_t *stack[256] = {NULL};
+cfg_t *function_entry[128] = {NULL};
 
 /* Compression function for Merkle-Damgard construction */
 #define mix(h)                                                                 \
@@ -356,7 +358,7 @@ trace_compare (trace_t *t1, trace_t *t2)
 
 
 cfg_t *
-cfg_new (hashtable_t *ht, instr_t *ins)
+cfg_new (hashtable_t *ht, instr_t *ins, char *str)
 {
 	cfg_t *CFG = malloc (sizeof (cfg_t));
 	if (!CFG)
@@ -364,6 +366,9 @@ cfg_new (hashtable_t *ht, instr_t *ins)
 	CFG->instruction =  ins;
 	CFG->nb_in = 0;
 	CFG->nb_out = 0;
+  CFG->str_graph = calloc ((strlen (str) + 1), sizeof (char));
+  strcpy (CFG->str_graph, str);
+
 	if (nb_name == 0)
 		CFG->name = 0;
 	switch (ins->type)
@@ -505,16 +510,18 @@ aux_cfg_insert (cfg_t *CFG, cfg_t *new)
 }
 
 cfg_t *
-cfg_insert (hashtable_t *ht, cfg_t *CFG, instr_t *ins, char *name[],Agraph_t *g )
+cfg_insert (hashtable_t *ht, cfg_t *CFG, instr_t *ins,Agraph_t *g, char *str)
 {
 	if (!CFG)
 		return NULL;
 	cfg_t *new = hashtable_lookup (ht, ins);
 	if (!new)
 		{
-		new = cfg_new (ht, ins);
+		new = cfg_new (ht, ins, str);
 		if (CFG->instruction->type == 2)
 		{
+      nb_name++;
+      function_entry[nb_name] = new;
 			stack[depth] = CFG;
 			depth++;
 		}
@@ -563,6 +570,14 @@ cfg_get_instr (cfg_t *CFG)
   return CFG->instruction;
 }
 
+
+
+uint16_t
+cfg_get_nb_out (cfg_t *CFG)
+{
+  return CFG->nb_out;
+}
+
 uint8_t
 cfg_get_type (cfg_t *CFG)
 {
@@ -579,4 +594,28 @@ cfg_t **
 cfg_get_successor (cfg_t *CFG)
 {
   return CFG->successor;
+}
+
+cfg_t *
+cfg_get_successor_i (cfg_t *CFG, uint16_t i)
+{
+  return CFG->successor[i];
+}
+
+uint16_t
+get_nb_name (void)
+{
+  return nb_name;
+}
+
+cfg_t *
+get_function_entry (size_t index)
+{
+  return function_entry[index];
+}
+
+char *
+cfg_get_str (cfg_t *CFG)
+{
+  return CFG->str_graph;
 }

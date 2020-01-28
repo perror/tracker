@@ -103,14 +103,14 @@ trace_t *trace_compare (trace_t *t1, trace_t *t2);
 
 /* Creates a cfg and it with hash_index
 Returns a pointer to the created trace, or NULL if an error occured */
-cfg_t *cfg_new (hashtable_t *ht, instr_t *ins);
+cfg_t *cfg_new (hashtable_t *ht, instr_t *ins, char *str);
 
 /* Auxiliary function for cfg_insert */
 cfg_t *aux_cfg_insert (cfg_t *CFG, cfg_t *new);
 
 /* Creates an element initialized with ins and insert it in CFG's succesors
 Returns a pointer to the created element or NULL if an error occured*/
-cfg_t *cfg_insert (hashtable_t *ht, cfg_t *CFG, instr_t *ins, char *name[],Agraph_t *g);
+cfg_t *cfg_insert (hashtable_t *ht, cfg_t *CFG, instr_t *ins, Agraph_t *g, char *str);
 
 /* Free every allocated field of CFG, as well as CFG itself */
 void cfg_delete (cfg_t *CFG);
@@ -118,10 +118,21 @@ void cfg_delete (cfg_t *CFG);
 
 instr_t *cfg_get_instr (cfg_t *CFG);
 
+uint16_t  cfg_get_nb_out (cfg_t *CFG);
+
 uint8_t cfg_get_type (cfg_t *CFG);
 
 uint16_t cfg_get_name (cfg_t *CFG);
 
 cfg_t **cfg_get_successor (cfg_t *CFG);
+
+cfg_t *cfg_get_successor_i (cfg_t *CFG, uint16_t i);
+
+uint16_t get_nb_name (void);
+
+char *cfg_get_str (cfg_t *CFG);
+
+cfg_t *get_function_entry (size_t index);
+
 
 #endif /* _TRACE_H */

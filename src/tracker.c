@@ -11,7 +11,7 @@
  */
 
 #include "tracker.h"
-#include "../graphviz/cgraph.h"
+#include <graphviz/cgraph.h>
 
 #define _POSIX_C_SOURCE 200809L
 
@@ -200,13 +200,49 @@ get_text_info (const char *execfilename, uint64_t *text_addr, uint64_t *text_siz
 
 
 Agraph_t *
-graph_create(Agraph_t *g, char *name_old, char *name_new)
+graph_create_function (Agraph_t *g, cfg_t *entry)
 {
   Agnode_t *n, *m;
   Agedge_t *f;
-  n = agnode (g, name_old, TRUE);
-  m = agnode (g, name_new, TRUE);
-  f = agedge(g,n,m,NULL, TRUE);
+  uint16_t i = 0;
+  cfg_t *old = entry;
+  while (i < cfg_get_nb_out (entry))
+    {
+      cfg_t *new = cfg_get_successor_i (old, i);
+      while (cfg_get_type (new) != 4)
+      {
+        if (cfg_get_type (new) == 1 || cfg_get_type (new) == 3)
+          graph_create_function (g, new);
+        else if (cfg_get_type (new) == 2)
+        {
+          if (instr_get_addr (cfg_get_instr (new)) !=
+          instr_get_addr (cfg_get_instr (old)) + instr_get_size (cfg_get_instr (old)))
+          {
+            uint16_t j = 0;
+            while (j < cfg_get_nb_out (old))
+            {
+              if (instr_get_addr (cfg_get_instr (cfg_get_successor_i (old, j)))
+              == instr_get_addr (cfg_get_instr (old)) + instr_get_size (cfg_get_instr (old)))
+              {
+                new = cfg_get_successor_i (old, j);
+                j = cfg_get_nb_out (old);
+              }
+              else
+                j++;
+            }
+          }
+        }
+        n = agnode (g, cfg_get_str(old), TRUE);
+        m = agnode (g, cfg_get_str(new), TRUE);
+        f = agedge(g,n,m,NULL, TRUE);
+        old = new;
+        new = cfg_get_successor_i(old, 0);
+      }
+      i++;
+      n = agnode (g, cfg_get_str(old), TRUE);
+      m = agnode (g, cfg_get_str(new), TRUE);
+      f = agedge(g,n,m,NULL, TRUE);
+    }
   return g;
 }
 
@@ -308,9 +344,10 @@ main (int argc, char *argv[], char *envp[])
 	cfg_t *cfg_entry = NULL;
 	hashtable_t *ht = hashtable_new (DEFAULT_HASHTABLE_SIZE);
   fp = fopen("toto.gv", "w+");
+  char name_node[128];
   Agraph_t *g;
   g = agopen ("G", Agdirected, NULL);
-  char *to_keep[2];
+
 
 	if (ht == NULL)
 		err (EXIT_FAILURE, "error: cannot create hashtable");
@@ -447,7 +484,7 @@ main (int argc, char *argv[], char *envp[])
 					  			fprintf (output, "\n");
 
 
-                  char name_node[128];
+
                   sprintf(name_node,"0x%" PRIxPTR  "  ", ip);
                   for (size_t i = 0; i < 8; i++)
                     sprintf(name_node + strlen(name_node), "%02x ", buf[i]);
@@ -465,13 +502,12 @@ main (int argc, char *argv[], char *envp[])
 										fclose (output);
 					    			err (EXIT_FAILURE, "error: cannot create instruction");
 									}
-									cs_free (insn, count);
+								cs_free (insn, count);
 
 									if (!cfg)
 									 	{
 											/* Create a new trace and store it */
-											cfg = cfg_new (ht, instr);
-                      to_keep[0] = name_node;
+											cfg = cfg_new (ht, instr, name_node);
 
 											if (!cfg)
   											{
@@ -487,10 +523,9 @@ main (int argc, char *argv[], char *envp[])
 										{
 											/* Insert a new element in the cfg and update cfg to hold
 											 * the new node */
-                      to_keep[1] = name_node;
-											cfg = cfg_insert (ht, cfg, instr, to_keep,g);
-                      graph_create (g, to_keep[0], to_keep[1]);
-                      to_keep[0] = name_node;
+
+											cfg = cfg_insert (ht, cfg, instr, g,name_node);
+
 											if (!cfg)
   											{
   												hashtable_delete (ht);
@@ -522,10 +557,11 @@ main (int argc, char *argv[], char *envp[])
 					  "* #hashtable collisions:  %zu\n\n\n",
 					  instr_count, hashtable_entries (ht),
 					  (size_t) DEFAULT_HASHTABLE_SIZE, hashtable_collisions (ht));
-
 				}
 		}
 
+
+  graph_create_function(g, get_function_entry(99));
 	fclose (input);
 	fclose (output);
 	hashtable_delete (ht);
