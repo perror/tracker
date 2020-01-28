@@ -18,7 +18,7 @@
 
 #include <inttypes.h>
 
-#define DEFAULT_HASHTABLE_SIZE 65536 /* 2^16 */
+#define DEFAULT_HASHTABLE_SIZE 1ULL << 16
 
 /* ***** Handling assembly instructions ***** */
 
