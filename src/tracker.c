@@ -209,11 +209,11 @@ graph_create_function (Agraph_t *g, cfg_t *entry)
   while (i < cfg_get_nb_out (entry))
     {
       cfg_t *new = cfg_get_successor_i (old, i);
-      while (cfg_get_type (new) != 4)
+      while (cfg_get_type (new) != CALL)
       {
-        if (cfg_get_type (new) == 1 || cfg_get_type (new) == 3)
+        if (cfg_get_type (new) == BRANCH || cfg_get_type (new) == JUMP)
           graph_create_function (g, new);
-        else if (cfg_get_type (new) == 2)
+        else if (cfg_get_type (new) == CALL)
         {
           if (instr_get_addr (cfg_get_instr (new)) !=
           instr_get_addr (cfg_get_instr (old)) + instr_get_size (cfg_get_instr (old)))
@@ -561,7 +561,7 @@ main (int argc, char *argv[], char *envp[])
 		}
 
 
-  graph_create_function(g, get_function_entry(99));
+  graph_create_function(g, get_function_entry(42));
 	fclose (input);
 	fclose (output);
 	hashtable_delete (ht);

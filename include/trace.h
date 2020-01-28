@@ -23,6 +23,15 @@
 /* A more convenient byte_t type */
 typedef uint8_t byte_t;
 
+/* All the possible types of instruction */
+typedef enum
+{
+   BASIC,
+   BRANCH,
+   CALL,
+   JUMP,
+   RET
+} instr_type_t;
 
 /* ***** Definitions of all the struct used ***** */
 
@@ -120,7 +129,7 @@ instr_t *cfg_get_instr (cfg_t *CFG);
 
 uint16_t  cfg_get_nb_out (cfg_t *CFG);
 
-uint8_t cfg_get_type (cfg_t *CFG);
+instr_type_t cfg_get_type (cfg_t *CFG);
 
 uint16_t cfg_get_name (cfg_t *CFG);
 

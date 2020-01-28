@@ -18,9 +18,9 @@
 
 struct _instr_t
 {
-  uintptr_t address; /* Address where lies the instruction */
+  uintptr_t address;  /* Address where lies the instruction */
   // uintptr_t *next; /* List of addresses of the next instructions */
-  uint8_t type;    /* Instr type: 0 = instr, 1 = branch, 2 = call, 3 = jmp, 4 = ret */
+  instr_type_t type;  /* Instr type: 0 = instr, 1 = branch, 2 = call, 3 = jmp, 4 = ret */
   uint8_t size;       /* Opcode size */
   uint8_t opcodes[];  /* Instruction opcode */
 };
@@ -45,21 +45,21 @@ instr_new (const uintptr_t addr, const uint8_t size, const uint8_t *opcodes)
 
 	if ((opcodes[0] >= 0x70 && opcodes[0] <= 0x7F)
 			|| (opcodes[0] == 0x0F && opcodes[1] >= 0x80 && opcodes[1] <= 0x8F))
-    instr->type = 1;
+    instr->type = BRANCH;
 	else if (opcodes[0] == 0xE8
-          || opcodes[0] == 0x9A
-		      || (opcodes[0] == 0xFF && (size == 2 || size == 3)))
-		instr->type = 2;
+           || opcodes[0] == 0x9A
+		       || (opcodes[0] == 0xFF && (size == 2 || size == 3)))
+		instr->type = CALL;
 	else if ((opcodes[0] >= 0xE9 && opcodes[0] <= 0xEB)
 	         || (opcodes[0] == 0xFF && (size == 4 || size == 5)))
-		instr->type = 3;
+		instr->type = JUMP;
 	else if (((opcodes[0] == 0xC3 || opcodes[0] == 0xCB) && size == 1)
-          || ((opcodes[0] == 0xC2 || opcodes[0] == 0xCA) && size == 3)
-          || (opcodes[0] == 0xF3 && opcodes[1] == 0xC3 && size == 2))
+           || ((opcodes[0] == 0xC2 || opcodes[0] == 0xCA) && size == 3)
+           || (opcodes[0] == 0xF3 && opcodes[1] == 0xC3 && size == 2))
 
-	  instr->type = 4;
+	  instr->type = RET;
 	else
-		instr->type = 0;
+		instr->type = BASIC;
   return instr;
 }
 
@@ -438,7 +438,7 @@ aux_cfg_insert (cfg_t *CFG, cfg_t *new)
 {
 	if (!new)
 		return NULL;
-  if (CFG->instruction->type != 4 && !CFG->successor[0])
+  if (CFG->instruction->type != RET && !CFG->successor[0])
 	  {
 		  CFG->successor[0] = new;
 			CFG->nb_out++;
@@ -449,7 +449,7 @@ aux_cfg_insert (cfg_t *CFG, cfg_t *new)
     {
       switch (CFG->instruction->type)
         {
-        case 1:
+        case BRANCH:
           if (CFG->nb_out == 2)
             return NULL;
           if (!CFG->successor)
@@ -462,7 +462,7 @@ aux_cfg_insert (cfg_t *CFG, cfg_t *new)
           new->nb_in++;
           new->name = CFG->name;
           break;
-        case 3:
+        case JUMP:
           if (is_power_2 (CFG->nb_out))
             CFG->successor = realloc (CFG->successor, 2 * CFG->nb_out * sizeof (cfg_t *));
           if (!CFG->successor)
@@ -475,7 +475,7 @@ aux_cfg_insert (cfg_t *CFG, cfg_t *new)
           new->nb_in++;
           new->name = CFG->name;
           break;
-        case 4:
+        case RET:
           depth--;
           if (new->instruction->address
 						== stack[depth]->instruction->address + stack[depth]->instruction->size)
@@ -518,7 +518,7 @@ cfg_insert (hashtable_t *ht, cfg_t *CFG, instr_t *ins,Agraph_t *g, char *str)
 	if (!new)
 		{
 		new = cfg_new (ht, ins, str);
-		if (CFG->instruction->type == 2)
+		if (CFG->instruction->type == CALL)
 		{
       nb_name++;
       function_entry[nb_name] = new;
@@ -530,7 +530,7 @@ cfg_insert (hashtable_t *ht, cfg_t *CFG, instr_t *ins,Agraph_t *g, char *str)
 		}
 else
 	{
-		if (CFG->instruction->type == 2)
+		if (CFG->instruction->type == CALL)
       {
         stack[depth] = CFG;
 			  depth++;
@@ -578,7 +578,7 @@ cfg_get_nb_out (cfg_t *CFG)
   return CFG->nb_out;
 }
 
-uint8_t
+instr_type_t
 cfg_get_type (cfg_t *CFG)
 {
   return CFG->instruction->type;
