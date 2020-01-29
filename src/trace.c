@@ -26,7 +26,7 @@ struct _instr_t
 };
 
 instr_t *
-instr_new (const uintptr_t addr, const uint8_t size, const uint8_t *opcodes)
+instr_new (const uintptr_t addr, const uint8_t size, const uint8_t *opcodes, char *str_name)
 {
   /* Check size != 0 and opcodes != NULL */
   if (size == 0 || opcodes == NULL)
@@ -42,17 +42,19 @@ instr_new (const uintptr_t addr, const uint8_t size, const uint8_t *opcodes)
   instr->address = addr;
   instr->size = size;
   memcpy (instr->opcodes, opcodes, size);
-
+	/* Test opcodes to assign type to instruction */
 	if ((opcodes[0] >= 0x70 && opcodes[0] <= 0x7F)
 			|| (opcodes[0] == 0x0F && opcodes[1] >= 0x80 && opcodes[1] <= 0x8F))
     instr->type = BRANCH;
 	else if (opcodes[0] == 0xE8
            || opcodes[0] == 0x9A
-		       || (opcodes[0] == 0xFF && (size == 2 || size == 3)))
+		       || (opcodes[0] == 0xFF && (size == 2 || size == 3))
+				 	 || (opcodes[0] == 0x41 && opcodes[1] == 0xFF && strstr (str_name, "call")))
 		instr->type = CALL;
 	else if ((opcodes[0] >= 0xE9 && opcodes[0] <= 0xEB)
 	         || (opcodes[0] == 0xFF && (size == 4 || size == 5))
-           || (opcodes[0] >= 0xE0 && opcodes[0] <= 0xE3))
+           || (opcodes[0] >= 0xE0 && opcodes[0] <= 0xE3)
+				 || (opcodes[0] == 0x41 && opcodes[1] == 0xFF && strstr (str_name, "jmp")))
 		instr->type = JUMP;
 	else if (((opcodes[0] == 0xC3 || opcodes[0] == 0xCB) && size == 1)
            || ((opcodes[0] == 0xC2 || opcodes[0] == 0xCA) && size == 3)
@@ -101,18 +103,22 @@ struct _hashtable_t
 
 struct _cfg_t
 {
-	instr_t *instruction;
-	uint16_t nb_in;
-	uint16_t nb_out;
-	uint16_t name;
-  char *str_graph;
-	cfg_t **successor;
+	instr_t *instruction; /* Pointer to instruction */
+	uint16_t nb_in; /* Number of predecessor */
+	uint16_t nb_out; /* Number of successor */
+	uint16_t name; /* Current function name */
+  char *str_graph; /* Address + opcodes + mnemonic + operand */
+	cfg_t **successor; /* Array of pointers to successor */
 };
 
+/* Represent the number of successive calls whithout rets */
 uint16_t depth = 0;
+/* Keep track of the number of different function called */
 uint16_t nb_name = 0;
+/* Array of caller indexed by depth */
 cfg_t *stack[256] = {NULL};
-cfg_t *function_entry[128] = {NULL};
+/* Arry of function's entry */
+cfg_t *function_entry[256] = {NULL};
 
 /* Compression function for Merkle-Damgard construction */
 #define mix(h)                                                                 \
@@ -436,6 +442,10 @@ aux_cfg_insert (cfg_t *CFG, cfg_t *new)
           new->nb_in++;
           new->name = CFG->name;
           break;
+				// case CALL:
+				// 	stack[depth] = CFG;
+				// 	depth++;
+				// 	break;
         case JUMP:
           if (is_power_2 (CFG->nb_out))
             CFG->successor = realloc (CFG->successor, 2 * CFG->nb_out * sizeof (cfg_t *));
@@ -578,7 +588,8 @@ cfg_get_successor_i (cfg_t *CFG, uint16_t i)
   return CFG->successor[i];
 }
 
-uint16_t
+/* to delete ? */
+size_t
 get_nb_name (void)
 {
   return nb_name;

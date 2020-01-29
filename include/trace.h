@@ -52,7 +52,7 @@ typedef struct _trace_t trace_t;
 
 /* Return a new instr_t struct, NULL otherwise (and set errno) */
 instr_t *instr_new (const uintptr_t addr, const uint8_t size,
-                    const uint8_t *opcodes);
+                    const uint8_t *opcodes, char *str_name);
 
 /* Delete the assembly instruction from memory */
 void instr_delete (instr_t *instr);
@@ -137,7 +137,7 @@ cfg_t **cfg_get_successor (cfg_t *CFG);
 
 cfg_t *cfg_get_successor_i (cfg_t *CFG, uint16_t i);
 
-uint16_t get_nb_name (void);
+size_t get_nb_name (void);
 
 char *cfg_get_str (cfg_t *CFG);
 

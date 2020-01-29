@@ -198,21 +198,26 @@ get_text_info (const char *execfilename, uint64_t *text_addr, uint64_t *text_siz
   return;
 }
 
+int tmp = 0;
 
 static Agraph_t *
 graph_create_function (Agraph_t *g, cfg_t *entry)
 {
+	printf("%d\n", tmp++);
   Agnode_t *n, *m;
-  Agedge_t *f;
   uint16_t i = 0;
   cfg_t *old = entry;
-  while (i < cfg_get_nb_out (entry))
+	int truc = 1;
+  while (i < cfg_get_nb_out (old))
     {
+
       cfg_t *new = cfg_get_successor_i (old, i);
-      while (cfg_get_type (new) != CALL)
+
+      while (cfg_get_type (new) != RET)
       {
+
         if (cfg_get_type (new) == BRANCH || cfg_get_type (new) == JUMP)
-          graph_create_function (g, new);
+          return graph_create_function (g, new);
         else if (cfg_get_type (new) == CALL)
         {
           if (instr_get_addr (cfg_get_instr (new)) !=
@@ -234,15 +239,17 @@ graph_create_function (Agraph_t *g, cfg_t *entry)
         }
         n = agnode (g, cfg_get_str(old), TRUE);
         m = agnode (g, cfg_get_str(new), TRUE);
-        f = agedge(g,n,m,NULL, TRUE);
+        agedge(g,n,m,NULL, TRUE);
         old = new;
         new = cfg_get_successor_i(old, 0);
+
       }
       i++;
       n = agnode (g, cfg_get_str(old), TRUE);
       m = agnode (g, cfg_get_str(new), TRUE);
-      f = agedge(g,n,m,NULL, TRUE);
+      agedge(g,n,m,NULL, TRUE);
     }
+	tmp--;
   return g;
 }
 
@@ -466,7 +473,8 @@ main (int argc, char *argv[], char *envp[])
 
 				      /* Get the mnemonic from decoder */
 				      count = cs_disasm (handle, &(buf[0]), MAX_OPCODE_BYTES, 0x1000, 0, &insn);
-				      if (count > 0)
+
+							if (count > 0)
 								{
 					  			/* Display the bytes */
 					  			for (size_t i = 0; i < insn[0].size; i++)
@@ -492,7 +500,7 @@ main (int argc, char *argv[], char *envp[])
                   sprintf(name_node + strlen(name_node), "%s ",insn[0].op_str);
 
 					  			/* Create the instr_t structure */
-					  			instr_t *instr = instr_new (ip, insn[0].size, buf);
+					  			instr_t *instr = instr_new (ip, insn[0].size, buf, name_node);
 					  			if (!instr)
 									{
 										hashtable_delete (ht);
@@ -561,11 +569,14 @@ main (int argc, char *argv[], char *envp[])
 		}
 
 
-  graph_create_function(g, get_function_entry(42));
+	graph_create_function(g, get_function_entry(1));
+
 	fclose (input);
 	fclose (output);
+
 	hashtable_delete (ht);
   agwrite(g, fp);
   agclose(g);
+	fclose (fp);
   return EXIT_SUCCESS;
 }
