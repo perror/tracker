@@ -6,21 +6,62 @@ LDFLAGS =
 CC32 = i686-linux-gnu-gcc
 CXX32 = i686-linux-gnu-g++
 
-SAMPLES = sample-01 sample-01-32 sample-02 sample-02-32
+SAMPLES = sample-01 sample-01-stripped sample-01-32 \
+	  sample-01-static sample-01-static-stripped sample-01-32-static \
+	  sample-02 sample-02-stripped sample-02-32 \
+	  sample-02-static sample-02-static-stripped sample-02-32-static
+
 
 all: $(SAMPLES)
 
 sample-01: sample-01.c
-	$(CC) $(CFLAGS) $(CPPFLAGS) -o $@ $< $(LDFLAGS)
+	$(CC) $(CFLAGS) -fpie $(CPPFLAGS) -o $@ $< $(LDFLAGS)
+
+sample-01-stripped: sample-01.c
+	$(CC) $(CFLAGS) -fpie $(CPPFLAGS) -o $@ $< $(LDFLAGS)
+	strip $@
 
 sample-01-32: sample-01.c
-	$(CC32) $(CFLAGS) $(CPPFLAGS) -o $@ $< $(LDFLAGS)
+	$(CC32) $(CFLAGS) -fpie $(CPPFLAGS) -o $@ $< $(LDFLAGS)
+
+sample-01-static: sample-01.c
+	$(CC) $(CFLAGS) -static -fno-pie $(CPPFLAGS) -o $@ $< $(LDFLAGS)
+
+sample-01-32-static: sample-01.c
+	$(CC32) $(CFLAGS) -static -fno-pie $(CPPFLAGS) -o $@ $< $(LDFLAGS)
+
+sample-01-static-stripped: sample-01.c
+	$(CC) $(CFLAGS) -static -fno-pie $(CPPFLAGS) -o $@ $< $(LDFLAGS)
+	strip $@
+
+sample-01-32-static-stripped: sample-01.c
+	$(CC32) $(CFLAGS) -static -fno-pie $(CPPFLAGS) -o $@ $< $(LDFLAGS)
+	strip $@
+
 
 sample-02: sample-02.cc
-	$(CXX) $(CXXFLAGS) $(CPPFLAGS) -o $@ $< $(LDFLAGS)
+	$(CXX) $(CXXFLAGS) -fpie $(CPPFLAGS) -o $@ $< $(LDFLAGS)
+
+sample-02-stripped: sample-02.cc
+	$(CXX) $(CXXFLAGS) -fpie $(CPPFLAGS) -o $@ $< $(LDFLAGS)
+	strip $@
 
 sample-02-32: sample-02.cc
-	$(CXX32) $(CXXFLAGS) $(CPPFLAGS) -o $@ $< $(LDFLAGS)
+	$(CXX32) $(CXXFLAGS) -fpie $(CPPFLAGS) -o $@ $< $(LDFLAGS)
+
+sample-02-static: sample-02.cc
+	$(CXX) $(CXXFLAGS) -static -fno-pie $(CPPFLAGS) -o $@ $< $(LDFLAGS)
+
+sample-02-32-static: sample-02.cc
+	$(CXX32) $(CXXFLAGS) -static -fno-pie $(CPPFLAGS) -o $@ $< $(LDFLAGS)
+
+sample-02-static-stripped: sample-02.cc
+	$(CXX) $(CXXFLAGS) -static -fno-pie $(CPPFLAGS) -o $@ $< $(LDFLAGS)
+	strip $@
+
+sample-02-32-static-stripped: sample-02.cc
+	$(CXX32) $(CXXFLAGS) -static -fno-pie $(CPPFLAGS) -o $@ $< $(LDFLAGS)
+	strip $@
 
 clean:
 	@rm -f $(SAMPLES) *~ *.o

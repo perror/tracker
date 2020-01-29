@@ -21,6 +21,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 
+#include <elf.h>
 #include <err.h>
 #include <errno.h>
 #include <getopt.h>
@@ -61,7 +62,7 @@ check_execfile (char *execfilename)
     errx (EXIT_FAILURE, "error: '%s' is not an executable file", execfilename);
 
   /* Check if given file is an executable and discover its architecture */
-  FILE *execfile = fopen (execfilename, "re");
+  FILE *execfile = fopen (execfilename, "rb");
   if (!execfile)
     err (EXIT_FAILURE, "error: '%s'", execfilename);
 
@@ -93,6 +94,9 @@ check_execfile (char *execfilename)
     default:
       errx (EXIT_FAILURE, "error: '%s' unsupported architecture", execfilename);
     }
+
+  /* Get the ELF header */
+  rewind (execfile);
 
   /* Closing file after verifications */
   fclose (execfile);
