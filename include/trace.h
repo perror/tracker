@@ -143,5 +143,7 @@ char *cfg_get_str (cfg_t *CFG);
 
 cfg_t *get_function_entry (size_t index);
 
+void add_first_entry (cfg_t *CFG);
+
 
 #endif /* _TRACE_H */

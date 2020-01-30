@@ -198,59 +198,72 @@ get_text_info (const char *execfilename, uint64_t *text_addr, uint64_t *text_siz
   return;
 }
 
-int tmp = 0;
 
 static Agraph_t *
 graph_create_function (Agraph_t *g, cfg_t *entry)
 {
-	printf("%d\n", tmp++);
   Agnode_t *n, *m;
-  uint16_t i = 0;
   cfg_t *old = entry;
-	int truc = 1;
-  while (i < cfg_get_nb_out (old))
-    {
+	cfg_t *new;
+	while (cfg_get_type (old) == BASIC)
+	{
+		new = cfg_get_successor_i(old, 0);
+		n = agnode (g, cfg_get_str(old), TRUE);
+    m = agnode (g, cfg_get_str(new), TRUE);
+		if (!agedge (g, n, m, NULL, FALSE))
+			agedge (g, n, m, NULL, TRUE);
+		else
+			return g;
+		if (cfg_get_type (new) != RET)
+		{
+			new = old;
+			old = cfg_get_successor_i(old, 0);
+		}
+		else
+		{
+			return g;
+		}
+	}
+	if (cfg_get_type (old) == BRANCH || cfg_get_type (old) == JUMP)
+	{
+		uint16_t j = 0;
+		while (j < cfg_get_nb_out (old))
+		{
+			new = cfg_get_successor_i(old, j);
+			n = agnode (g, cfg_get_str(old), TRUE);
+			m = agnode (g, cfg_get_str(new), TRUE);
+			if (!agedge (g, n, m, NULL, FALSE))
+			{
+				agedge (g, n, m, NULL, TRUE);
+				g = graph_create_function(g, new);
+			}
+			j++;
+		}
+	}
+	else if (cfg_get_type (old) == CALL)
+	{
+		uint16_t i = 0;
+		while (i < cfg_get_nb_out (old))
+		{
+			new = cfg_get_successor_i(old, i);
+			if (instr_get_addr (cfg_get_instr (old)) + instr_get_size (cfg_get_instr (old))
+		== instr_get_addr ( cfg_get_instr (new)))
+			{
+				n = agnode (g, cfg_get_str(old), TRUE);
+				m = agnode (g, cfg_get_str(new), TRUE);
+				if (!agedge (g, n, m, NULL, FALSE))
+				{
+					agedge (g, n, m, NULL, TRUE);
+					g = graph_create_function(g, new);
+				}
+				else
+					return g;
+			}
+			i++;
+		}
 
-      cfg_t *new = cfg_get_successor_i (old, i);
-
-      while (cfg_get_type (new) != RET)
-      {
-
-        if (cfg_get_type (new) == BRANCH || cfg_get_type (new) == JUMP)
-          return graph_create_function (g, new);
-        else if (cfg_get_type (new) == CALL)
-        {
-          if (instr_get_addr (cfg_get_instr (new)) !=
-          instr_get_addr (cfg_get_instr (old)) + instr_get_size (cfg_get_instr (old)))
-          {
-            uint16_t j = 0;
-            while (j < cfg_get_nb_out (old))
-            {
-              if (instr_get_addr (cfg_get_instr (cfg_get_successor_i (old, j)))
-              == instr_get_addr (cfg_get_instr (old)) + instr_get_size (cfg_get_instr (old)))
-              {
-                new = cfg_get_successor_i (old, j);
-                j = cfg_get_nb_out (old);
-              }
-              else
-                j++;
-            }
-          }
-        }
-        n = agnode (g, cfg_get_str(old), TRUE);
-        m = agnode (g, cfg_get_str(new), TRUE);
-        agedge(g,n,m,NULL, TRUE);
-        old = new;
-        new = cfg_get_successor_i(old, 0);
-
-      }
-      i++;
-      n = agnode (g, cfg_get_str(old), TRUE);
-      m = agnode (g, cfg_get_str(new), TRUE);
-      agedge(g,n,m,NULL, TRUE);
-    }
-	tmp--;
-  return g;
+	}
+	return g;
 }
 
 
@@ -353,8 +366,9 @@ main (int argc, char *argv[], char *envp[])
   fp = fopen("toto.gv", "w+");
   char name_node[128];
   Agraph_t *g;
-  g = agopen ("G", Agdirected, NULL);
-
+  g = agopen ("G", Agstrictdirected, NULL);
+	Agsym_t *sym;
+	sym = agattr (g, AGNODE, "shape", "box");
 
 	if (ht == NULL)
 		err (EXIT_FAILURE, "error: cannot create hashtable");
@@ -494,7 +508,7 @@ main (int argc, char *argv[], char *envp[])
 
 
                   sprintf(name_node,"0x%" PRIxPTR  "  ", ip);
-                  for (size_t i = 0; i < 8; i++)
+                  for (size_t i = 0; i < insn[0].size; i++)
                     sprintf(name_node + strlen(name_node), "%02x ", buf[i]);
                   sprintf(name_node + strlen(name_node), " %s ",insn[0].mnemonic);
                   sprintf(name_node + strlen(name_node), "%s ",insn[0].op_str);
@@ -526,6 +540,7 @@ main (int argc, char *argv[], char *envp[])
   									 			err (EXIT_FAILURE, "error: cannot create a control flow graph");
   											}
 									 		cfg_entry = cfg;
+											add_first_entry (cfg_entry);
 										}
 									else
 										{
@@ -569,7 +584,7 @@ main (int argc, char *argv[], char *envp[])
 		}
 
 
-	graph_create_function(g, get_function_entry(1));
+	graph_create_function(g, get_function_entry(98));
 
 	fclose (input);
 	fclose (output);
