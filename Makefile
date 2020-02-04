@@ -7,7 +7,7 @@ all:
 	@cp -f src/tracker ./
 
 check: all
-	@cd tests/ && $(MAKE)
+	@cd test/ && $(MAKE)
 
 format:
 	clang-format -i -style=file src/*.[ch] include/*.h
@@ -17,7 +17,7 @@ tidy:
 
 clean:
 	@cd src/ && $(MAKE) clean
-	@cd tests/ && $(MAKE) clean
+	@cd test/ && $(MAKE) clean
 	@rm -f tracker *~ .*~
 
 help:
