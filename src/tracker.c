@@ -40,7 +40,17 @@
 #include <trace.h>
 
 /* Platform architecture arch_t type */
-typedef enum { unknown_arch, x86_32_arch, x86_64_arch } arch_t;
+typedef enum { unknown_arch = 0, x86_32_arch, x86_64_arch } arch_t;
+
+typedef struct
+{
+  arch_t arch;
+  union
+  {
+    Elf32_Ehdr elf32;
+    Elf64_Ehdr elf64;
+  } header;
+} header_t;
 
 /* In amd64, maximum bytes for an opcode is 15 */
 #define MAX_OPCODE_BYTES 16
@@ -49,6 +59,9 @@ typedef enum { unknown_arch, x86_32_arch, x86_64_arch } arch_t;
 static bool debug = false;   /* 'debug' option flag */
 static bool verbose = false; /* 'verbose' option flag */
 static FILE *output = NULL;  /* output file (default: stdout) */
+
+/* Global variables about current analyzed executable */
+static header_t exec_hdr = {.arch = unknown_arch, .header = {{{0}}}};
 
 /* Get the architecture of the executable */
 static arch_t
@@ -79,29 +92,28 @@ check_execfile (char *execfilename)
   fseek (execfile, 0x12, SEEK_SET);
   if (fread (&buf, 1, 1, execfile) != 1)
     errx (EXIT_FAILURE, "error: cannot read '%s'", execfilename);
+  rewind (execfile);
 
-  arch_t exec_arch = unknown_arch;
   switch (buf[0])
     {
     case 0x03:
-      exec_arch = x86_32_arch;
+      exec_hdr.arch = x86_32_arch;
+      fread (&(exec_hdr.header.elf32), 1, sizeof (Elf32_Ehdr), execfile);
       break;
 
     case 0x3e:
-      exec_arch = x86_64_arch;
+      exec_hdr.arch = x86_64_arch;
+      fread (&(exec_hdr.header.elf64), 1, sizeof (Elf64_Ehdr), execfile);
       break;
 
     default:
       errx (EXIT_FAILURE, "error: '%s' unsupported architecture", execfilename);
     }
 
-  /* Get the ELF header */
-  rewind (execfile);
-
   /* Closing file after verifications */
   fclose (execfile);
 
-  return exec_arch;
+  return exec_hdr.arch;
 }
 
 /* Get current instruction pointer address */
