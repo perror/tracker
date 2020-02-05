@@ -464,9 +464,21 @@ aux_cfg_insert (cfg_t *CFG, cfg_t *new)
           if (new->instruction->address
 						== stack[depth]->instruction->address + stack[depth]->instruction->size)
           {
-          CFG = stack[depth];
-          stack[depth] = NULL;
-				}
+            CFG = stack[depth];
+            stack[depth] = NULL;
+            bool flag = false;
+            for (size_t i = 0; i < CFG->nb_out; i++)
+        			{
+        				if (CFG->successor[i]->instruction->address
+        					 == new->instruction->address)
+        					{
+                    flag = true;
+                    break;
+                  }
+        			}
+              if (flag)
+                break;
+				  }
 				else
 				{
 					depth++;
@@ -562,6 +574,12 @@ uint16_t
 cfg_get_nb_out (cfg_t *CFG)
 {
   return CFG->nb_out;
+}
+
+uint16_t
+cfg_get_nb_in (cfg_t *CFG)
+{
+  return CFG->nb_in;
 }
 
 instr_type_t

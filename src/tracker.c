@@ -198,75 +198,134 @@ get_text_info (const char *execfilename, uint64_t *text_addr, uint64_t *text_siz
   return;
 }
 
-
-static Agraph_t *
-graph_create_function (Agraph_t *g, cfg_t *entry)
+static char *
+concat_str (char *dest, char *follow)
 {
-  Agnode_t *n, *m;
-  cfg_t *old = entry;
-	cfg_t *new;
-	while (cfg_get_type (old) == BASIC)
+	if (!dest)
 	{
-		new = cfg_get_successor_i(old, 0);
-		n = agnode (g, cfg_get_str(old), TRUE);
-    m = agnode (g, cfg_get_str(new), TRUE);
-		if (!agedge (g, n, m, NULL, FALSE))
-			agedge (g, n, m, NULL, TRUE);
-		else
-			return g;
-		if (cfg_get_type (new) != RET)
-		{
-			new = old;
-			old = cfg_get_successor_i(old, 0);
-		}
-		else
-		{
-			return g;
-		}
+		dest = calloc ((strlen (follow) + 1), sizeof (char));
+		sprintf (dest, "%s", follow);
+		return dest;
 	}
-	if (cfg_get_type (old) == BRANCH || cfg_get_type (old) == JUMP)
-	{
-		uint16_t j = 0;
-		while (j < cfg_get_nb_out (old))
-		{
-			new = cfg_get_successor_i(old, j);
-			n = agnode (g, cfg_get_str(old), TRUE);
-			m = agnode (g, cfg_get_str(new), TRUE);
-			if (!agedge (g, n, m, NULL, FALSE))
-			{
-				agedge (g, n, m, NULL, TRUE);
-				g = graph_create_function(g, new);
-			}
-			j++;
-		}
-	}
-	else if (cfg_get_type (old) == CALL)
-	{
-		uint16_t i = 0;
-		while (i < cfg_get_nb_out (old))
-		{
-			new = cfg_get_successor_i(old, i);
-			if (instr_get_addr (cfg_get_instr (old)) + instr_get_size (cfg_get_instr (old))
-		== instr_get_addr ( cfg_get_instr (new)))
-			{
-				n = agnode (g, cfg_get_str(old), TRUE);
-				m = agnode (g, cfg_get_str(new), TRUE);
-				if (!agedge (g, n, m, NULL, FALSE))
-				{
-					agedge (g, n, m, NULL, TRUE);
-					g = graph_create_function(g, new);
-				}
-				else
-					return g;
-			}
-			i++;
-		}
-
-	}
-	return g;
+	dest = realloc (dest, (strlen (dest) + 1 + strlen (follow) + 1) * sizeof (char));
+	sprintf (dest + strlen(dest), "\n%s", follow);
+	return dest;
 }
 
-
+static Agraph_t *
+graph_create_function (Agraph_t *g, cfg_t *entry, Agnode_t *n)
+{
+  Agnode_t *m = NULL;
+  cfg_t *old = entry;
+	cfg_t *new = NULL;
+  char *str_bb = NULL;
+  while (cfg_get_type (old) == BASIC || cfg_get_type (old) == CALL)
+    {
+      /* Not the begining of the function + more than 1 parent --> basic block */
+      if (old != entry && cfg_get_nb_in (old) > 1)
+        {
+          m = agnode (g, str_bb, TRUE);
+          free(str_bb);
+          str_bb = NULL;
+          if (n)
+            {
+              if (!agedge (g, n, m, NULL, FALSE))
+                {
+                  agedge (g, n, m, NULL, TRUE);
+                  graph_create_function (g, old, m);
+                }
+            }
+          else
+            graph_create_function (g, old, m);
+          return g;
+        }
+      if (cfg_get_type (old) == CALL)
+        {
+          /* Searching for a RET following the CALL */
+          uint16_t i = 0;
+          while (i < cfg_get_nb_out (old))
+            {
+              new = cfg_get_successor_i (old, i);
+              if (instr_get_addr (cfg_get_instr (old)) + instr_get_size (cfg_get_instr (old))
+        		      == instr_get_addr (cfg_get_instr (new)))
+                break;
+              new = NULL;
+              i++;
+            }
+          str_bb = concat_str (str_bb, cfg_get_str(old));
+          if (!new)
+            {
+              m = agnode (g, str_bb, TRUE);
+              free(str_bb);
+              str_bb = NULL;
+              if (n)
+                {
+                  if (!agedge (g, n, m, NULL, FALSE))
+                    agedge (g, n, m, NULL, TRUE);
+                }
+              return g;
+            }
+          else
+            {
+              old = new;
+              new = NULL;
+            }
+        }
+      else
+        {
+          str_bb = concat_str (str_bb, cfg_get_str(old));
+          if (cfg_get_nb_out (old) == 0)
+            {
+              m = agnode (g, str_bb, TRUE);
+              free(str_bb);
+              str_bb = NULL;
+              if (!agedge (g, n, m, NULL, FALSE))
+                agedge (g, n, m, NULL, TRUE);
+              return g;
+            }
+          old = cfg_get_successor_i (old, 0);
+          /* Ugly trick to avoid infite loops if a instruction is its own parent */
+          if (old == entry)
+            {
+              m = agnode (g, str_bb, TRUE);
+              free(str_bb);
+              str_bb = NULL;
+              if (!agedge (g, n, m, NULL, FALSE))
+                agedge (g, n, m, NULL, TRUE);
+              Agnode_t *tmp = agnode (g, cfg_get_str (old), TRUE);
+              agedge (g, m, tmp, NULL, TRUE);
+              agedge (g, tmp, tmp, NULL, TRUE);
+              return g;
+            }
+        }
+    }
+  /* Enf of a basic block */
+  str_bb = concat_str (str_bb, cfg_get_str(old));
+  m = agnode (g, str_bb, TRUE);
+  free(str_bb);
+  str_bb = NULL;
+  if (n)
+    {
+      if (!agedge (g, n, m, NULL, FALSE))
+        {
+          agedge (g, n, m, NULL, TRUE);
+          if (cfg_get_type (old) == BRANCH || cfg_get_type (old) == JUMP)
+            {
+              for (uint16_t i = 0; i < cfg_get_nb_out (old); i++)
+                graph_create_function (g, cfg_get_successor_i (old, i), m);
+            }
+        }
+    }
+  else
+    {
+      if (cfg_get_type (old) == BRANCH || cfg_get_type (old) == JUMP)
+        {
+          for (uint16_t i = 0; i < cfg_get_nb_out (old); i++)
+            graph_create_function (g, cfg_get_successor_i (old, i), m);
+        }
+    }
+    return g;
+}
 
 int
 main (int argc, char *argv[], char *envp[])
@@ -511,7 +570,7 @@ main (int argc, char *argv[], char *envp[])
                   for (size_t i = 0; i < insn[0].size; i++)
                     sprintf(name_node + strlen(name_node), "%02x ", buf[i]);
                   sprintf(name_node + strlen(name_node), " %s ",insn[0].mnemonic);
-                  sprintf(name_node + strlen(name_node), "%s ",insn[0].op_str);
+                  sprintf(name_node + strlen(name_node), "%s",insn[0].op_str);
 
 					  			/* Create the instr_t structure */
 					  			instr_t *instr = instr_new (ip, insn[0].size, buf, name_node);
@@ -583,10 +642,8 @@ main (int argc, char *argv[], char *envp[])
 				}
 		}
 
-
-	graph_create_function(g, get_function_entry(98));
-
-	fclose (input);
+  graph_create_function(g, get_function_entry(12), NULL);
+  fclose (input);
 	fclose (output);
 
 	hashtable_delete (ht);

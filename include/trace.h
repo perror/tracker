@@ -127,7 +127,9 @@ void cfg_delete (cfg_t *CFG);
 
 instr_t *cfg_get_instr (cfg_t *CFG);
 
-uint16_t  cfg_get_nb_out (cfg_t *CFG);
+uint16_t cfg_get_nb_out (cfg_t *CFG);
+
+uint16_t cfg_get_nb_in (cfg_t *CFG);
 
 instr_type_t cfg_get_type (cfg_t *CFG);
 
