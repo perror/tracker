@@ -4,12 +4,18 @@ CPPFLAGS = -I../include
 LDFLAGS  = -lcapstone
 
 # Rules and targets
-all: tracker
+all: tracker sample
 
 tracker: tracker.o trace.o
 	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS)
 
 tracker.o: tracker.c tracker.h ../include/trace.h
+	$(CC) $(CFLAGS) $(CPPFLAGS) -c -o $@ $<
+
+sample: sample.c executable.c
+	$(CC) $(CFLAGS) $(CPPFLAGS) -o $@ $^ $(LDFLAGS)
+
+executable.o: executable.c ../include/executable.h
 	$(CC) $(CFLAGS) $(CPPFLAGS) -c -o $@ $<
 
 trace.o: trace.c ../include/trace.h

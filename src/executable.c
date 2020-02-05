@@ -13,13 +13,15 @@
 #include "executable.h"
 
 #include <stdio.h>
+#include <stdlib.h>
 
 #include <elf.h>
 #include <err.h>
+#include <string.h>
 
 #include <sys/stat.h>
 
-typedef struct
+struct _executable_t
 {
   arch_t arch;
   union
@@ -27,10 +29,10 @@ typedef struct
     Elf32_Ehdr elf32;
     Elf64_Ehdr elf64;
   } header;
-} _executable_t;
+};
 
 executable_t *
-exec_init (char *execfilename)
+exec_new (char *execfilename)
 {
   struct stat exec_stats;
   if (stat (execfilename, &exec_stats) == -1)
@@ -66,13 +68,13 @@ exec_init (char *execfilename)
   switch (buf[0])
     {
     case 0x03:
-      exec_hdr.arch = x86_32_arch;
-      fread (&(exec_hdr.header.elf32), 1, sizeof (Elf32_Ehdr), execfile);
+      exec->arch = x86_32_arch;
+      fread (&(exec->header.elf32), 1, sizeof (Elf32_Ehdr), execfile);
       break;
 
     case 0x3e:
-      exec_hdr.arch = x86_64_arch;
-      fread (&(exec_hdr.header.elf64), 1, sizeof (Elf64_Ehdr), execfile);
+      exec->arch = x86_64_arch;
+      fread (&(exec->header.elf64), 1, sizeof (Elf64_Ehdr), execfile);
       break;
 
     default:
@@ -82,11 +84,11 @@ exec_init (char *execfilename)
   /* Closing file after verifications */
   fclose (execfile);
 
-  return exec_hdr;
+  return exec;
 }
 
 void
-exec_free (executable_t *exec)
+exec_delete (executable_t *exec)
 {
   free (exec);
 }
@@ -96,7 +98,7 @@ arch_t
 exec_arch (executable_t *exec)
 {
   if (exec == NULL)
-    return NULL;
+    return unknown_arch;
 
   return exec->arch;
 };
