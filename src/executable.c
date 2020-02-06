@@ -12,7 +12,6 @@
 
 #include "executable.h"
 
-#include <stdio.h>
 #include <stdlib.h>
 
 #include <elf.h>
@@ -93,7 +92,6 @@ exec_delete (executable_t *exec)
   free (exec);
 }
 
-/* Get executable architecture */
 arch_t
 exec_arch (executable_t *exec)
 {
@@ -102,6 +100,17 @@ exec_arch (executable_t *exec)
 
   return exec->arch;
 };
+
+void
+exec_print_arch (executable_t *exec, FILE *fd)
+{
+  const char *arch2str[3] = { "Unknown architecture", "x86-32", "x86-64" };
+
+  if (exec == NULL)
+    fputs (arch2str[unknown_arch], fd);
+
+  fputs (arch2str[exec->arch], fd);
+}
 
 char *
 executable_section_next (executable_t *exec)

@@ -37,20 +37,8 @@
 
 #include <capstone/capstone.h>
 
+#include <executable.h>
 #include <trace.h>
-
-/* Platform architecture arch_t type */
-typedef enum { unknown_arch = 0, x86_32_arch, x86_64_arch } arch_t;
-
-typedef struct
-{
-  arch_t arch;
-  union
-  {
-    Elf32_Ehdr elf32;
-    Elf64_Ehdr elf64;
-  } header;
-} header_t;
 
 /* In amd64, maximum bytes for an opcode is 15 */
 #define MAX_OPCODE_BYTES 16
@@ -59,62 +47,6 @@ typedef struct
 static bool debug = false;   /* 'debug' option flag */
 static bool verbose = false; /* 'verbose' option flag */
 static FILE *output = NULL;  /* output file (default: stdout) */
-
-/* Global variables about current analyzed executable */
-static header_t exec_hdr = {.arch = unknown_arch, .header = {{{0}}}};
-
-/* Get the architecture of the executable */
-static arch_t
-check_execfile (char *execfilename)
-{
-  struct stat exec_stats;
-  if (stat (execfilename, &exec_stats) == -1)
-    err (EXIT_FAILURE, "error: '%s'", execfilename);
-
-  if (!S_ISREG (exec_stats.st_mode) || !(exec_stats.st_mode & S_IXUSR))
-    errx (EXIT_FAILURE, "error: '%s' is not an executable file", execfilename);
-
-  /* Check if given file is an executable and discover its architecture */
-  FILE *execfile = fopen (execfilename, "rb");
-  if (!execfile)
-    err (EXIT_FAILURE, "error: '%s'", execfilename);
-
-  /* Open file */
-  char buf[4] = {0};
-  if (fread (&buf, 4, 1, execfile) != 1)
-    errx (EXIT_FAILURE, "error: cannot read '%s'", execfilename);
-
-  /* Check ELF magic number (first 4 bytes: 0x7f "ELF") */
-  if (buf[0] != 0x7f || strncmp (&(buf[1]), "ELF", 3) != 0)
-    errx (EXIT_FAILURE, "error: '%s' is not an ELF binary", execfilename);
-
-  /* Extract executable architecture (byte at 0x12) */
-  fseek (execfile, 0x12, SEEK_SET);
-  if (fread (&buf, 1, 1, execfile) != 1)
-    errx (EXIT_FAILURE, "error: cannot read '%s'", execfilename);
-  rewind (execfile);
-
-  switch (buf[0])
-    {
-    case 0x03:
-      exec_hdr.arch = x86_32_arch;
-      fread (&(exec_hdr.header.elf32), 1, sizeof (Elf32_Ehdr), execfile);
-      break;
-
-    case 0x3e:
-      exec_hdr.arch = x86_64_arch;
-      fread (&(exec_hdr.header.elf64), 1, sizeof (Elf64_Ehdr), execfile);
-      break;
-
-    default:
-      errx (EXIT_FAILURE, "error: '%s' unsupported architecture", execfilename);
-    }
-
-  /* Closing file after verifications */
-  fclose (execfile);
-
-  return exec_hdr.arch;
-}
 
 /* Get current instruction pointer address */
 static uintptr_t
@@ -215,7 +147,15 @@ main (int argc, char *argv[], char *envp[])
   exec_argv[exec_argc] = NULL;
 
   /* Perfom various checks on the executable file */
-  arch_t exec_arch = check_execfile (exec_argv[0]);
+  executable_t *exec = exec_new (exec_argv[0]);
+
+  if (verbose)
+    {
+      fprintf (output, "* Executable: %s\n", exec_argv[0]);
+      fprintf (output, "* Architecture: ");
+      exec_print_arch(exec, output);
+      fputs("\n", output);
+    }
 
   /* Display the traced command */
   fprintf (output, "%s: starting to trace '", program_name);
@@ -257,7 +197,7 @@ main (int argc, char *argv[], char *envp[])
   size_t count;
 
   cs_mode exec_mode = 0;
-  switch (exec_arch)
+  switch (exec_arch(exec))
     {
     case x86_32_arch:
       exec_mode = CS_MODE_32;
@@ -369,6 +309,7 @@ main (int argc, char *argv[], char *envp[])
   /* Cleaning memory */
   cs_close (&handle);
   hashtable_delete (ht);
+  exec_delete(exec);
 
   return EXIT_SUCCESS;
 }
