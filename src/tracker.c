@@ -153,8 +153,8 @@ main (int argc, char *argv[], char *envp[])
     {
       fprintf (output, "* Executable: %s\n", exec_argv[0]);
       fprintf (output, "* Architecture: ");
-      exec_print_arch(exec, output);
-      fputs("\n", output);
+      exec_print_arch (exec, output);
+      fputs ("\n", output);
     }
 
   /* Display the traced command */
@@ -197,7 +197,7 @@ main (int argc, char *argv[], char *envp[])
   size_t count;
 
   cs_mode exec_mode = 0;
-  switch (exec_arch(exec))
+  switch (exec_arch (exec))
     {
     case x86_32_arch:
       exec_mode = CS_MODE_32;
@@ -309,7 +309,7 @@ main (int argc, char *argv[], char *envp[])
   /* Cleaning memory */
   cs_close (&handle);
   hashtable_delete (ht);
-  exec_delete(exec);
+  exec_delete (exec);
 
   return EXIT_SUCCESS;
 }

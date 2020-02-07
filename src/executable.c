@@ -104,7 +104,7 @@ exec_arch (executable_t *exec)
 void
 exec_print_arch (executable_t *exec, FILE *fd)
 {
-  const char *arch2str[3] = { "Unknown architecture", "x86-32", "x86-64" };
+  const char *arch2str[3] = {"Unknown architecture", "x86-32", "x86-64"};
 
   if (exec == NULL)
     fputs (arch2str[unknown_arch], fd);

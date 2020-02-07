@@ -13,19 +13,14 @@
 #ifndef _EXECUTABLE_H
 #define _EXECUTABLE_H
 
-#include <stdio.h>
 #include <stdint.h>
+#include <stdio.h>
 
 /* Executable type */
 typedef struct _executable_t executable_t;
 
 /* Platform architecture arch_t type */
-typedef enum
-  {
-   unknown_arch = 0,
-   x86_32_arch = 1,
-   x86_64_arch = 2
-  } arch_t;
+typedef enum { unknown_arch = 0, x86_32_arch = 1, x86_64_arch = 2 } arch_t;
 
 /* Create and initialize a new executable_t */
 executable_t *exec_new (char *execfilename);
