@@ -23,7 +23,6 @@ format:
 
 tidy:
 	clang-tidy *.c *.h -config="" -- -std=c11 $(CPPFLAGS)
-
 clean:
 	@echo "src: Cleaning..."
 	@rm -f *~ *.o tracker

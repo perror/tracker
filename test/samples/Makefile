@@ -6,9 +6,9 @@ LDFLAGS =
 CC32 = i686-linux-gnu-gcc
 CXX32 = i686-linux-gnu-g++
 
-SAMPLES = sample-01 sample-01-stripped sample-01-32 sample-01-pie \
+SAMPLES = sample-01 sample-01-stripped sample-01-32 \
 	  sample-01-static sample-01-static-stripped sample-01-32-static \
-	  sample-02 sample-02-stripped sample-02-32 sample-02-pie \
+	  sample-02 sample-02-stripped sample-02-32 \
 	  sample-02-static sample-02-static-stripped sample-02-32-static
 
 
