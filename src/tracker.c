@@ -311,5 +311,8 @@ main (int argc, char *argv[], char *envp[])
   hashtable_delete (ht);
   exec_delete (exec);
 
+  if (output != stdout)
+    fclose (output);
+
   return EXIT_SUCCESS;
 }
