@@ -11,6 +11,8 @@ check: all
 
 format:
 	clang-format -i -style=file src/*.[ch] include/*.h
+	clang-format -i -style=file test/samples/*.[ch]
+
 
 tidy:
 	clang-tidy src/*.c -config="" -- -std=c11 -Iinclude
