@@ -20,7 +20,7 @@
 
 #define DEFAULT_HASHTABLE_SIZE 1ULL << 16
 
-/* ***** Handling assembly instructions ***** */
+/* ***** Assembly instructions ***** */
 
 typedef struct _instr_t instr_t;
 
@@ -40,7 +40,7 @@ size_t instr_get_size (instr_t *const instr);
 /* Get a pointer to the opcodes of the instruction */
 uint8_t *instr_get_opcodes (instr_t *const instr);
 
-/* ***** Hashtables to store instructions ***** */
+/* ***** Instructions' hashtables ***** */
 
 typedef uint64_t hash_t;
 typedef struct _hashtable_t hashtable_t;
@@ -69,7 +69,7 @@ size_t hashtable_collisions (hashtable_t *ht);
 /* Count the number of non empty buckets in the hashtable */
 size_t hashtable_filled_buckets (hashtable_t *ht);
 
-/* ***** Linked list to store an execution trace ***** */
+/* ***** Execution trace ***** */
 
 typedef struct _trace_t trace_t;
 
@@ -86,5 +86,13 @@ void trace_delete (trace_t *t);
 
 /* Returns the first element where t1 and t2 differs, NULL otherwise */
 trace_t *trace_compare (trace_t *t1, trace_t *t2);
+
+/* ***** Execution control-flow graph ***** */
+typedef struct _cfg_t cfg_t;
+typedef enum { single = 0, branch = 1, dynjump = 2 } node_t;
+
+cfg_t *cfg_new (instr_t *instr, node_t node_type);
+cfg_t *cfg_insert (cfg_t *cfg, instr_t *instr, node_t node_type);
+void cfg_delete (cfg_t *cfg);
 
 #endif /* _TRACE_H */
