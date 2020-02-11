@@ -73,13 +73,13 @@ size_t hashtable_filled_buckets (hashtable_t *ht);
 
 typedef struct _trace_t trace_t;
 
-/* Creates a trace and initialize the first element with hash_index
+/* Creates a trace and initialize the first element with instr
  * Returns a pointer to the created trace, or NULL if an error occured */
-trace_t *trace_new (hash_t hash_index);
+trace_t *trace_new (instr_t *instr);
 
-/* Insert an element initialized with hash_index and insert it after t
+/* Insert an element instr at the end of the trace (after t).
  * Returns a pointer to the created element or NULL if an error occured */
-trace_t *trace_insert (trace_t *t, hash_t hash_index);
+trace_t *trace_insert (trace_t *t, instr_t *instr);
 
 /* Free every element in the trace t */
 void trace_delete (trace_t *t);

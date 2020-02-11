@@ -281,25 +281,25 @@ hashtable_filled_buckets (hashtable_t *ht)
 
 struct _trace_t
 {
-  hash_t h;      /* Index for the hash value of the instruction */
-  trace_t *next; /* Pointer to the next value in the list */
+  instr_t *instr; /* Pointer to the current instruction */
+  trace_t *next;  /* Pointer to the next value in the list */
 };
 
 trace_t *
-trace_new (hash_t hash_index)
+trace_new (instr_t *instr)
 {
   trace_t *t = malloc (sizeof (trace_t));
   if (!t)
     return NULL;
 
-  t->h = hash_index;
+  t->instr = instr;
   t->next = NULL;
 
   return t;
 }
 
 trace_t *
-trace_insert (trace_t *t, hash_t hash_index)
+trace_insert (trace_t *t, instr_t *instr)
 {
   if (!t)
     {
@@ -307,7 +307,7 @@ trace_insert (trace_t *t, hash_t hash_index)
       return NULL;
     }
 
-  trace_t *new = trace_new (hash_index);
+  trace_t *new = trace_new (instr);
   if (!new)
     return NULL;
 
@@ -345,7 +345,7 @@ trace_compare (trace_t *t1, trace_t *t2)
 
   trace_t *tmp1 = t1;
   trace_t *tmp2 = t2;
-  while (tmp1->h == tmp2->h)
+  while (tmp1->instr == tmp2->instr)
     {
       tmp1 = tmp1->next;
       tmp2 = tmp2->next;
