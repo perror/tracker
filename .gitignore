@@ -50,3 +50,21 @@ modules.order
 Module.symvers
 Mkfile.old
 dkms.conf
+
+# Ignore executables
+tracker
+src/tracker
+
+# Ignore tests
+test/samples/sample-01
+test/samples/sample-01-32
+test/samples/sample-01-32-static
+test/samples/sample-01-static
+test/samples/sample-01-static-stripped
+test/samples/sample-01-stripped
+test/samples/sample-02
+test/samples/sample-02-32
+test/samples/sample-02-32-static
+test/samples/sample-02-static
+test/samples/sample-02-static-stripped
+test/samples/sample-02-stripped
