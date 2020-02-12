@@ -20,8 +20,7 @@
 struct _instr_t
 {
   uintptr_t address; /* Address where lies the instruction */
-  // uintptr_t *next; /* List of addresses of the next instructions */
-  // uint8_t type;    /* Instr type: 0 = instr, 1 = branch, 2 = call, 3 = jmp */
+  // uint8_t type;   /* 0 = instr, 1 = branch, 2 = call, 3 = jmp */
   uint8_t size;      /* Opcode size */
   uint8_t opcodes[]; /* Instruction opcode */
 };
