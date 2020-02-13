@@ -46,20 +46,23 @@ instr_new (const uintptr_t addr, const uint8_t size, const uint8_t *opcodes, cha
 	if ((opcodes[0] >= 0x70 && opcodes[0] <= 0x7F)
 			|| (opcodes[0] == 0x0F && opcodes[1] >= 0x80 && opcodes[1] <= 0x8F))
     instr->type = BRANCH;
-	else if (/*opcodes[0] == 0xE8
+	else if (opcodes[0] == 0xE8
            || opcodes[0] == 0x9A
-		       || (opcodes[0] == 0xFF && (size == 2 || size == 3))
-				 	 || (opcodes[0] == 0x41 && opcodes[1] == 0xFF && */strstr (str_name, "call") && !strstr(str_name, "syscall"))/*)*/
+		       || (opcodes[0] == 0xFF && (((size == 2 && opcodes[1] >= 0xD0 && opcodes[1] <= 0xDF) || size == 3) || opcodes[1] == 0x15))
+				 	 || (opcodes[0] == 0x41 && opcodes[1] == 0xFF &&
+						 ((opcodes[2] >= 0xD0 && opcodes[2] <= 0xD7) || size > 3)))
+					 /*strstr (str_name, "call") && !strstr(str_name, "syscall")))*/
 		instr->type = CALL;
-	else if (/*(opcodes[0] >= 0xE9 && opcodes[0] <= 0xEB)
-	         || (opcodes[0] == 0xFF && (size == 4 || size == 5))
+	else if ((opcodes[0] >= 0xE9 && opcodes[0] <= 0xEB)
+	         || (opcodes[0] == 0xFF && (((size == 2 && opcodes[1] >= 0xE0 && opcodes[1] <= 0xEF) || size == 4 || size == 5) || opcodes[1] == 0x25))
            || (opcodes[0] >= 0xE0 && opcodes[0] <= 0xE3)
-				 || (opcodes[0] == 0x41 && opcodes[1] == 0xFF && */strstr (str_name, "jmp"))/*)*/
+				 || (opcodes[0] == 0x41 && opcodes[1] == 0xFF &&
+					 opcodes[2] >= 0xE0 && opcodes[2] <= 0xE7))
+					 /*strstr (str_name, "jmp")))*/
 		instr->type = JUMP;
 	else if (((opcodes[0] == 0xC3 || opcodes[0] == 0xCB) && size == 1)
            || ((opcodes[0] == 0xC2 || opcodes[0] == 0xCA) && size == 3)
            || (opcodes[0] == 0xF3 && opcodes[1] == 0xC3 && size == 2))
-
 	  instr->type = RET;
 	else
 		instr->type = BASIC;

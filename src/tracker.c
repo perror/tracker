@@ -228,15 +228,9 @@ graph_create_function (Agraph_t *g, cfg_t *entry, Agnode_t *n)
           free(str_bb);
           str_bb = NULL;
           if (n)
-            {
-              if (!agedge (g, n, m, NULL, FALSE))
-                {
-                  agedge (g, n, m, NULL, TRUE);
-                  graph_create_function (g, old, m);
-                }
-            }
-          else
-            graph_create_function (g, old, m);
+            if (!agedge (g, n, m, NULL, FALSE))
+              agedge (g, n, m, NULL, TRUE);
+          graph_create_function (g, old, m);
           return g;
         }
       if (cfg_get_type (old) == CALL)
@@ -259,10 +253,8 @@ graph_create_function (Agraph_t *g, cfg_t *entry, Agnode_t *n)
               free(str_bb);
               str_bb = NULL;
               if (n)
-                {
-                  if (!agedge (g, n, m, NULL, FALSE))
-                    agedge (g, n, m, NULL, TRUE);
-                }
+								if (!agedge (g, n, m, NULL, FALSE))
+                  agedge (g, n, m, NULL, TRUE);
               return g;
             }
           else
@@ -326,6 +318,76 @@ graph_create_function (Agraph_t *g, cfg_t *entry, Agnode_t *n)
     }
     return g;
 }
+
+
+static Agraph_t *
+graph_create_function_2 (Agraph_t *g, cfg_t *entry)
+{
+  Agnode_t *n, *m;
+  cfg_t *old = entry;
+	cfg_t *new;
+	while (cfg_get_type (old) == BASIC)
+	{
+		new = cfg_get_successor_i(old, 0);
+		n = agnode (g, cfg_get_str(old), TRUE);
+    m = agnode (g, cfg_get_str(new), TRUE);
+		if (!agedge (g, n, m, NULL, FALSE))
+			agedge (g, n, m, NULL, TRUE);
+		else
+			return g;
+		if (cfg_get_type (new) != RET)
+		{
+			new = old;
+			old = cfg_get_successor_i(old, 0);
+		}
+		else
+		{
+			return g;
+		}
+	}
+	if (cfg_get_type (old) == BRANCH || cfg_get_type (old) == JUMP)
+	{
+		uint16_t j = 0;
+		while (j < cfg_get_nb_out (old))
+		{
+			new = cfg_get_successor_i(old, j);
+			n = agnode (g, cfg_get_str(old), TRUE);
+			m = agnode (g, cfg_get_str(new), TRUE);
+			if (!agedge (g, n, m, NULL, FALSE))
+			{
+				agedge (g, n, m, NULL, TRUE);
+				g = graph_create_function_2(g, new);
+			}
+			j++;
+		}
+	}
+	else if (cfg_get_type (old) == CALL)
+	{
+		uint16_t i = 0;
+		while (i < cfg_get_nb_out (old))
+		{
+			new = cfg_get_successor_i(old, i);
+			if (instr_get_addr (cfg_get_instr (old)) + instr_get_size (cfg_get_instr (old))
+		== instr_get_addr ( cfg_get_instr (new)))
+			{
+				n = agnode (g, cfg_get_str(old), TRUE);
+				m = agnode (g, cfg_get_str(new), TRUE);
+				if (!agedge (g, n, m, NULL, FALSE))
+				{
+					agedge (g, n, m, NULL, TRUE);
+					g = graph_create_function_2(g, new);
+				}
+				else
+					return g;
+			}
+			i++;
+		}
+
+	}
+	return g;
+}
+
+
 
 int
 main (int argc, char *argv[], char *envp[])
@@ -642,7 +704,9 @@ main (int argc, char *argv[], char *envp[])
 				}
 		}
 
-  graph_create_function(g, get_function_entry(12), NULL);
+
+   		graph_create_function_2(g, get_function_entry(90));
+
   fclose (input);
 	fclose (output);
 
