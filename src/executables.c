@@ -1,16 +1,15 @@
 /*
- * tracker is an hybrid trustworthy disassembler that tries to limit the number
- * of false positive paths discovered.
+ * tracker is an analyzer for binary executable files
  *
  *  Written and maintained by Emmanuel Fleury <emmanuel.fleury@u-bordeaux.fr>
  *
- * Copyright 2019 University of Bordeaux, CNRS (UMR 5800), France.
+ * Copyright 2019-2020 University of Bordeaux, CNRS (UMR 5800), France.
  * All rights reserved.
  *
  * This software is released under a 3-clause BSD license (see COPYING file).
  */
 
-#include "executable.h"
+#include "executables.h"
 
 #include <stdlib.h>
 
@@ -31,7 +30,7 @@ struct _executable_t
 };
 
 executable_t *
-exec_new (char *execfilename)
+executable_new (char *execfilename)
 {
   struct stat exec_stats;
   if (stat (execfilename, &exec_stats) == -1)
@@ -87,13 +86,13 @@ exec_new (char *execfilename)
 }
 
 void
-exec_delete (executable_t *exec)
+executable_delete (executable_t *exec)
 {
   free (exec);
 }
 
 arch_t
-exec_arch (executable_t *exec)
+executable_arch (executable_t *exec)
 {
   if (exec == NULL)
     return unknown_arch;
@@ -102,7 +101,7 @@ exec_arch (executable_t *exec)
 };
 
 void
-exec_print_arch (executable_t *exec, FILE *fd)
+executable_print_arch (executable_t *exec, FILE *fd)
 {
   const char *arch2str[3] = {"Unknown architecture", "x86-32", "x86-64"};
 

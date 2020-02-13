@@ -6,16 +6,16 @@ LDFLAGS  = -lcapstone
 # Rules and targets
 all: tracker
 
-tracker: tracker.o executable.o trace.o
+tracker: tracker.o executables.o traces.o
 	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS)
 
-tracker.o: tracker.c tracker.h ../include/trace.h
+tracker.o: tracker.c tracker.h ../include/traces.h
 	$(CC) $(CFLAGS) $(CPPFLAGS) -c -o $@ $<
 
-executable.o: executable.c ../include/executable.h
+executables.o: executables.c ../include/executables.h
 	$(CC) $(CFLAGS) $(CPPFLAGS) -c -o $@ $<
 
-trace.o: trace.c ../include/trace.h
+traces.o: traces.c ../include/traces.h
 	$(CC) $(CFLAGS) $(CPPFLAGS) -c -o $@ $<
 
 format:

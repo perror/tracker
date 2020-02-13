@@ -1,10 +1,9 @@
 /*
- * tracker is an hybrid trustworthy disassembler that tries to limit the number
- * of false positive paths discovered.
+ * tracker is an analyzer for binary executable files
  *
  *  Written and maintained by Emmanuel Fleury <emmanuel.fleury@u-bordeaux.fr>
  *
- * Copyright 2019 University of Bordeaux, CNRS (UMR 5800), France.
+ * Copyright 2019-2020 University of Bordeaux, CNRS (UMR 5800), France.
  * All rights reserved.
  *
  * This software is released under a 3-clause BSD license (see COPYING file).

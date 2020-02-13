@@ -1,10 +1,9 @@
 /*
- * tracker is an hybrid trustworthy disassembler that tries to limit the number
- * of false positive paths discovered.
+ * tracker is an analyzer for binary executable files
  *
  *  Written and maintained by Emmanuel Fleury <emmanuel.fleury@u-bordeaux.fr>
  *
- * Copyright 2019 University of Bordeaux, CNRS (UMR 5800), France.
+ * Copyright 2019-2020 University of Bordeaux, CNRS (UMR 5800), France.
  * All rights reserved.
  *
  * This software is released under a 3-clause BSD license (see COPYING file).
@@ -37,8 +36,8 @@
 
 #include <capstone/capstone.h>
 
-#include <executable.h>
-#include <trace.h>
+#include <executables.h>
+#include <traces.h>
 
 /* In amd64, maximum bytes for an opcode is 15 */
 #define MAX_OPCODE_BYTES 16
@@ -147,13 +146,13 @@ main (int argc, char *argv[], char *envp[])
   exec_argv[exec_argc] = NULL;
 
   /* Perfom various checks on the executable file */
-  executable_t *exec = exec_new (exec_argv[0]);
+  executable_t *exec = executable_new (exec_argv[0]);
 
   if (verbose)
     {
       fprintf (output, "* Executable: %s\n", exec_argv[0]);
       fprintf (output, "* Architecture: ");
-      exec_print_arch (exec, output);
+      executable_print_arch (exec, output);
       fputs ("\n", output);
     }
 
@@ -197,7 +196,7 @@ main (int argc, char *argv[], char *envp[])
   size_t count;
 
   cs_mode exec_mode = 0;
-  switch (exec_arch (exec))
+  switch (executable_arch (exec))
     {
     case x86_32_arch:
       exec_mode = CS_MODE_32;
@@ -309,7 +308,7 @@ main (int argc, char *argv[], char *envp[])
   /* Cleaning memory */
   cs_close (&handle);
   hashtable_delete (ht);
-  exec_delete (exec);
+  executable_delete (exec);
 
   if (output != stdout)
     fclose (output);
