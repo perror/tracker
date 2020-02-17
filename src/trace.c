@@ -51,14 +51,12 @@ instr_new (const uintptr_t addr, const uint8_t size, const uint8_t *opcodes, cha
 		       || (opcodes[0] == 0xFF && (((size == 2 && opcodes[1] >= 0xD0 && opcodes[1] <= 0xDF) || size == 3) || opcodes[1] == 0x15))
 				 	 || (opcodes[0] == 0x41 && opcodes[1] == 0xFF &&
 						 ((opcodes[2] >= 0xD0 && opcodes[2] <= 0xD7) || size > 3)))
-					 /*strstr (str_name, "call") && !strstr(str_name, "syscall")))*/
 		instr->type = CALL;
 	else if ((opcodes[0] >= 0xE9 && opcodes[0] <= 0xEB)
 	         || (opcodes[0] == 0xFF && (((size == 2 && opcodes[1] >= 0xE0 && opcodes[1] <= 0xEF) || size == 4 || size == 5) || opcodes[1] == 0x25))
            || (opcodes[0] >= 0xE0 && opcodes[0] <= 0xE3)
 				 || (opcodes[0] == 0x41 && opcodes[1] == 0xFF &&
 					 opcodes[2] >= 0xE0 && opcodes[2] <= 0xE7))
-					 /*strstr (str_name, "jmp")))*/
 		instr->type = JUMP;
 	else if (((opcodes[0] == 0xC3 || opcodes[0] == 0xCB) && size == 1)
            || ((opcodes[0] == 0xC2 || opcodes[0] == 0xCA) && size == 3)
@@ -312,6 +310,7 @@ trace_new (instr_t *ins)
 	trace_t *t = malloc (sizeof (trace_t));
 	if (!t)
 		return NULL;
+		/* Initialize trace */
 	t->instruction = ins;
 	t->next = NULL;
 	return t;
@@ -374,6 +373,7 @@ cfg_new (hashtable_t *ht, instr_t *ins, char *str)
 	if (!CFG)
 		return NULL;
   if (ins->type == BASIC)
+	/* If type is BASIC then we know for sure there can only be one successor */
     CFG->successor = calloc (1, sizeof (cfg_t));
   else
     CFG->successor = calloc (2, sizeof (cfg_t));
@@ -382,6 +382,7 @@ cfg_new (hashtable_t *ht, instr_t *ins, char *str)
       cfg_delete (CFG);
       return NULL;
     }
+	/* Initializing the CFG structure */
 	CFG->instruction = ins;
 	CFG->nb_in = 0;
 	CFG->nb_out = 0;
@@ -392,6 +393,7 @@ cfg_new (hashtable_t *ht, instr_t *ins, char *str)
       return NULL;
     }
   strcpy (CFG->str_graph, str);
+	/* Initializing the nmae if it is the first function */
 	if (nb_name == 0)
 		CFG->name = 0;
 	hashtable_insert (ht, CFG);
@@ -417,6 +419,7 @@ aux_cfg_insert (cfg_t *CFG, cfg_t *new)
 {
 	if (!new)
 		return NULL;
+	/* Checking if the parent already has a successor */
   if (CFG->instruction->type != RET && !CFG->successor[0])
 	  {
 		  CFG->successor[0] = new;
@@ -426,6 +429,7 @@ aux_cfg_insert (cfg_t *CFG, cfg_t *new)
 		}
   else
     {
+			/* Inserting the new node in the parent's successors */
       switch (CFG->instruction->type)
         {
         // case BASIC:
@@ -463,6 +467,7 @@ aux_cfg_insert (cfg_t *CFG, cfg_t *new)
           new->name = CFG->name;
           break;
         case RET:
+					/* Checking the call on the top of the stack */
           depth--;
           if (new->instruction->address
 						== stack[depth]->instruction->address + stack[depth]->instruction->size)
@@ -470,6 +475,7 @@ aux_cfg_insert (cfg_t *CFG, cfg_t *new)
             CFG = stack[depth];
             stack[depth] = NULL;
             bool flag = false;
+						/* Check if new is already a successor of CFG */
             for (size_t i = 0; i < CFG->nb_out; i++)
         			{
         				if (CFG->successor[i]->instruction->address
@@ -488,9 +494,7 @@ aux_cfg_insert (cfg_t *CFG, cfg_t *new)
 				}
           if (is_power_2 (CFG->nb_out))
 					{
-
             CFG->successor = realloc (CFG->successor, 2 * CFG->nb_out * sizeof (cfg_t *));
-
 					}
 
           if (!CFG->successor)
@@ -514,9 +518,11 @@ cfg_insert (hashtable_t *ht, cfg_t *CFG, instr_t *ins,Agraph_t *g, char *str)
 	if (!CFG)
 		return NULL;
 	cfg_t *new = hashtable_lookup (ht, ins);
+	/* First time seeing this instruction */
 	if (!new)
 		{
 		new = cfg_new (ht, ins, str);
+		/* Pushing the call on the stack */
 		if (CFG->instruction->type == CALL)
 		{
       nb_name++;
@@ -529,12 +535,14 @@ cfg_insert (hashtable_t *ht, cfg_t *CFG, instr_t *ins,Agraph_t *g, char *str)
 		}
 else
 	{
+		/* Pushing the call on the stack */
 		if (CFG->instruction->type == CALL)
       {
         stack[depth] = CFG;
 			  depth++;
       }
     instr_delete (ins);
+		/* Checking if new is already a successor of old */
 		for (size_t i = 0; i < CFG->nb_out; i++)
 			{
 				if (CFG->successor[i]->instruction->address
@@ -570,8 +578,6 @@ cfg_get_instr (cfg_t *CFG)
 {
   return CFG->instruction;
 }
-
-
 
 uint16_t
 cfg_get_nb_out (cfg_t *CFG)

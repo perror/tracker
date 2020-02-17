@@ -319,7 +319,6 @@ graph_create_function (Agraph_t *g, cfg_t *entry, Agnode_t *n)
     return g;
 }
 
-
 static Agraph_t *
 graph_create_function_2 (Agraph_t *g, cfg_t *entry)
 {

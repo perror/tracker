@@ -124,28 +124,37 @@ cfg_t *cfg_insert (hashtable_t *ht, cfg_t *CFG, instr_t *ins, Agraph_t *g, char 
 /* Free every allocated field of CFG, as well as CFG itself */
 void cfg_delete (cfg_t *CFG);
 
-
+/* Get the instruction in CFG */
 instr_t *cfg_get_instr (cfg_t *CFG);
 
+/* Get the number of successors of CFG */
 uint16_t cfg_get_nb_out (cfg_t *CFG);
 
+/* Get the number of "parents" of CFG */
 uint16_t cfg_get_nb_in (cfg_t *CFG);
 
+/* Get the type of the instruction in CFG */
 instr_type_t cfg_get_type (cfg_t *CFG);
 
+/* Get the index of the function CFG is in */
 uint16_t cfg_get_name (cfg_t *CFG);
 
+/* Get a pointer array of every successor of CFG */
 cfg_t **cfg_get_successor (cfg_t *CFG);
 
+/* Get a pointer to successor number i of CFG */
 cfg_t *cfg_get_successor_i (cfg_t *CFG, uint16_t i);
 
+/* Get the total number of functions */
 size_t get_nb_name (void);
 
+/* Get the str with the address, the opcodes, the mnemonics and the operands */
 char *cfg_get_str (cfg_t *CFG);
 
+/* Get a pointer to the first node in the function number index */
 cfg_t *get_function_entry (size_t index);
 
+/* Adds the very first node to function_entry */ 
 void add_first_entry (cfg_t *CFG);
-
 
 #endif /* _TRACE_H */
