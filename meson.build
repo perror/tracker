@@ -1,4 +1,5 @@
-project('tracker', 'c', 'cpp',
+# Set the project
+project('tracker', 'c',
   version : '0.1.0',
   default_options : [
     'buildtype=release',
@@ -7,12 +8,29 @@ project('tracker', 'c', 'cpp',
   ]
 )
 
+# Configure default C compiler
 cc = meson.get_compiler('c')
 incdir = include_directories('include')
 
+# Configure buildtype
+buildtype = get_option('buildtype')
+
+# Looking for dependencies
 capstone_dep = cc.find_library('capstone', required: true)
 
-cxx = meson.get_compiler('cpp')
+# Set the debug flags if needed
+tracker_debug_cflags = []
+if buildtype.startswith('debug')
+  tracker_debug_cflags += ['-DDEBUG']
+  add_languages('cpp')
+elif buildtype == 'release'
+  tracker_debug_cflags += ['-DNDEBUG']
+endif
+
+add_project_arguments(tracker_debug_cflags, language: 'c')
+
 
 subdir('src')
-subdir('tests')
+if buildtype.startswith('debug')
+  subdir('tests')
+endif
