@@ -2,7 +2,7 @@
 project('tracker', 'c',
   version : '0.1.0',
   default_options : [
-    'buildtype=release',
+    'buildtype=debug',
     'warning_level=2',
     'c_std=c11',
   ]
@@ -23,6 +23,7 @@ tracker_debug_cflags = []
 if buildtype.startswith('debug')
   tracker_debug_cflags += ['-DDEBUG']
   add_languages('cpp')
+  cmocka_dep = dependency('cmocka', fallback : ['cmocka', 'cmocka_dep'])
 elif buildtype == 'release'
   tracker_debug_cflags += ['-DNDEBUG']
 endif

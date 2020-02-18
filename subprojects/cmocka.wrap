@@ -1,0 +1,4 @@
+[wrap-git]
+directory = cmocka
+url = https://git.cryptomilk.org/projects/cmocka.git
+revision = head
