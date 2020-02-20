@@ -1,34 +1,49 @@
-				Tracker Project
-			       =================
+                                Tracker Project
+                               =================
 
-'tracker' is an hybrid trustworthy disassembler that uses dynamic and static
-approaches to get an as complete as possible disassembly of a binary with a
-minimum of false positive instructions gathered (tracker must provide a proof
-that every single trace it displays can be executable for real with an input
-that trigger its execution).
+'tracker' is a binary analysis tool that uses dynamic and static approaches to
+get an as complete as possible disassembly of a binary with a minimum of false
+positive instructions gathered (tracker must provide a proof that every single
+trace it displays can be executable for real with an input that trigger its
+execution).
 
 It uses a fuzzer to extract a first couple of traces from the given binary and,
 then, provides new inputs to the fuzzer with the help of static-analysis
 techniques (symbolic execution and abstract interpretation applied on a CFG
 extracted from previous traces).
 
-Current student project
------------------------
-For now, we need to build a way to gather all the traces into a CFG that can be
-grown by further new traces brought by the fuzzer or the result of some
-static-analysis result.
 
-This project may requires to build a very "quick and dirty" fuzzer to be able
-to collect several traces and gather it together. But, we do not expect any
-work on the static-analysis part.
-
-Build the project
------------------
-This project requires the capstone library and a Linux platform.
+Build the project for users
+---------------------------
+This project requires meson-build, the capstone library and a Linux platform.
 To build it:
 
 #> cd tracker/
-#> make
+#> meson --buildtype=release --prefix=/usr/local _build .
+#> cd _build/
+#> ninja
+#> ninja install
+
+
+Build the project for developer
+-------------------------------
+Build the software and run the tests (buildtype: 'debug' or 'debugoptimized'):
+
+#> cd tracker/
+# meson --buildtype=debug _build .
+#> cd _build/
+#> ninja
+#> ninja test
+
+Having the tests with code coverage:
+
+#> cd tracker/
+# meson --buildtype=debug -Db_coverage=true _build .
+#> cd _build/
+#> ninja
+#> ninja test
+#> ninja coverage-html
+#> firefox meson-logs/coveragereport/index.html
 
 
 Reporting bugs
