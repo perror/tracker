@@ -52,19 +52,19 @@ instr_delete (instr_t *instr)
 }
 
 uintptr_t
-instr_get_addr (instr_t *const instr)
+instr_addr (instr_t *const instr)
 {
   return instr->address;
 }
 
 size_t
-instr_get_size (instr_t *const instr)
+instr_size (instr_t *const instr)
 {
   return instr->size;
 }
 
 uint8_t *
-instr_get_opcodes (instr_t *const instr)
+instr_opcodes (instr_t *const instr)
 {
   return instr->opcodes;
 }

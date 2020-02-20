@@ -1,4 +1,5 @@
 [wrap-git]
 directory = cmocka
-url = https://git.cryptomilk.org/projects/cmocka.git
+#url = https://git.cryptomilk.org/projects/cmocka.git
+url = https://gitlab.com/perror/cmocka.git
 revision = head

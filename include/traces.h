@@ -9,8 +9,8 @@
  * This software is released under a 3-clause BSD license (see COPYING file).
  */
 
-#ifndef _TRACE_H
-#define _TRACE_H
+#ifndef _TRACES_H
+#define _TRACES_H
 
 #include <stdbool.h>
 #include <stdlib.h>
@@ -31,13 +31,13 @@ instr_t *instr_new (const uintptr_t addr, const uint8_t size,
 void instr_delete (instr_t *instr);
 
 /* Get the address of the instruction */
-uintptr_t instr_get_addr (instr_t *const instr);
+uintptr_t instr_addr (instr_t *const instr);
 
 /* Get the size (in bytes) of the instruction */
-size_t instr_get_size (instr_t *const instr);
+size_t instr_size (instr_t *const instr);
 
 /* Get a pointer to the opcodes of the instruction */
-uint8_t *instr_get_opcodes (instr_t *const instr);
+uint8_t *instr_opcodes (instr_t *const instr);
 
 /* ***** Instructions' hashtables ***** */
 
@@ -95,4 +95,4 @@ cfg_t *cfg_new (instr_t *instr, node_t node_type);
 cfg_t *cfg_insert (cfg_t *cfg, instr_t *instr, node_t node_type);
 void cfg_delete (cfg_t *cfg);
 
-#endif /* _TRACE_H */
+#endif /* _TRACES_H */

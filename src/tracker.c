@@ -9,7 +9,7 @@
  * This software is released under a 3-clause BSD license (see COPYING file).
  */
 
-#include "tracker.h"
+#include "config.h"
 
 #define _POSIX_C_SOURCE 200809L
 
