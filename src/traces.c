@@ -20,7 +20,7 @@ struct _instr_t
 {
   uintptr_t address; /* Address where lies the instruction */
   // uint8_t type;   /* 0 = instr, 1 = branch, 2 = call, 3 = jmp */
-  uint8_t size;      /* Opcode size */
+  uint8_t size;	     /* Opcode size */
   uint8_t opcodes[]; /* Instruction opcode */
 };
 
@@ -73,7 +73,7 @@ instr_opcodes (instr_t *const instr)
 
 struct _hashtable_t
 {
-  size_t size;	 /* Hashtable size */
+  size_t size;	       /* Hashtable size */
   size_t collisions;   /* Number of collisions encountered */
   size_t entries;      /* Number of entries registered */
   instr_t **buckets[]; /* Hachtable buckets */

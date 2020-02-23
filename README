@@ -45,6 +45,13 @@ Having the tests with code coverage:
 #> ninja coverage-html
 #> firefox meson-logs/coveragereport/index.html
 
+Formatting the code with clang-format:
+
+#> ninja clang-format
+
+Perform some static-analysis on the code:
+#> ninja clang-tidy
+
 
 Reporting bugs
 --------------

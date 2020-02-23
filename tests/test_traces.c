@@ -9,16 +9,19 @@
  * This software is released under a 3-clause BSD license (see COPYING file).
  */
 
+#include <setjmp.h>
 #include <stdarg.h>
 #include <stddef.h>
-#include <setjmp.h>
+
 #include <cmocka.h>
 
 #include <errno.h>
 
 #include "traces.h"
 
-static void instr_test(void **state) {
+static void
+instr_test (__attribute__ ((unused)) void **state)
+{
   uint8_t size = 4;
   uintptr_t addr = 0xdeadbeef;
   uint8_t *opcodes = (uint8_t *) "\xbe\xba\xfe\xca";
@@ -43,10 +46,24 @@ static void instr_test(void **state) {
   assert_true (errno == EINVAL);
 }
 
-int main(void) {
-    const struct CMUnitTest tests[] = {
-        cmocka_unit_test(instr_test),
-    };
+static void
+hashtable_test (__attribute__ ((unused)) void **state)
+{
+  size_t ht_size = 1024;
 
-    return cmocka_run_group_tests(tests, NULL, NULL);
+  hashtable_t *ht = hashtable_new (ht_size);
+  assert_non_null (ht);
+
+  hashtable_delete (ht);
+}
+
+int
+main (void)
+{
+  const struct CMUnitTest tests[] = {
+      cmocka_unit_test (instr_test),
+      cmocka_unit_test (hashtable_test),
+  };
+
+  return cmocka_run_group_tests (tests, NULL, NULL);
 }
