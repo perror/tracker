@@ -53,7 +53,8 @@ hashtable_t *hashtable_new (const size_t size);
 /* Free the given hashtable */
 void hashtable_delete (hashtable_t *ht);
 
-/* Insert the instruction in the hashtable */
+/* Insert the instruction in the hashtable, returns true if insertion is
+   successful, false if instruction was already here or a problem occured */
 bool hashtable_insert (hashtable_t *ht, instr_t *instr);
 
 /* Look-up if current instruction is already in the hashtable */

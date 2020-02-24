@@ -211,9 +211,16 @@ hashtable_insert (hashtable_t *ht, instr_t *instr)
 
   /* Bucket isn't NULL, scanning all entries to see if instr is already here */
   size_t k = 0;
-  while (ht->buckets[index][k] != NULL)
-    if (ht->buckets[index][k++]->address == instr->address)
-      return false;
+  instr_t **bucket_instr = ht->buckets[index];
+  while (bucket_instr[k] != NULL)
+    {
+      if (bucket_instr[k]->address == instr->address &&
+	  bucket_instr[k]->size == instr->size &&
+	  !strncmp ((const char *) bucket_instr[k]->opcodes,
+		    (const char *) instr->opcodes, instr->size))
+	return false;
+      k++;
+    }
 
   instr_t **new_bucket = calloc (k + 2, sizeof (instr_t *));
   if (!new_bucket)
@@ -246,9 +253,16 @@ hashtable_lookup (hashtable_t *ht, instr_t *instr)
 
   /* Bucket is not empty, scanning all entries to see if instr is here */
   size_t k = 0;
-  while (ht->buckets[index][k] != NULL)
-    if (ht->buckets[index][k++]->address == instr->address)
-      return true;
+  instr_t **bucket_instr = ht->buckets[index];
+  while (bucket_instr[k] != NULL)
+    {
+      if (bucket_instr[k]->address == instr->address &&
+	  bucket_instr[k]->size == instr->size &&
+	  !strncmp ((const char *) bucket_instr[k]->opcodes,
+		    (const char *) instr->opcodes, instr->size))
+	return true;
+      k++;
+    }
 
   return false;
 }
@@ -290,8 +304,13 @@ trace_new (instr_t *instr)
   if (!t)
     return NULL;
 
-  t->instr = instr;
-  t->next = NULL;
+  if (!t)
+    {
+      t->instr = instr;
+      t->next = NULL;
+    }
+  else
+    t = NULL;
 
   return t;
 }
