@@ -149,8 +149,25 @@ trace_test (__attribute__ ((unused)) void **state)
 	  *instr10 = instr_new (0xeeeeeeee, 10, opcodes6),
 	  *instr11 = instr_new (0xdddddddd, 4, opcodes6);
 
-  trace_t *tr = trace_new (instr1);
+  trace_t *tr = trace_insert (NULL, instr1);
   assert_non_null (tr);
+
+  assert_null (trace_insert(tr, NULL));
+
+  tr = trace_insert (tr, instr2);
+  tr = trace_insert (tr, instr3);
+  tr = trace_insert (tr, instr4);
+  tr = trace_insert (tr, instr5);
+  tr = trace_insert (tr, instr6);
+  tr = trace_insert (tr, instr7);
+  tr = trace_insert (tr, instr8);
+  tr = trace_insert (tr, instr9);
+  tr = trace_insert (tr, instr10);
+
+  assert_null (trace_compare (tr, tr));
+  assert_true (trace_compare (NULL, tr) == tr);
+  assert_true (trace_compare (tr, NULL) == tr);
+  assert_true (trace_compare (NULL, NULL) == NULL && errno == EINVAL);
 
   trace_delete (tr);
   trace_delete (NULL);

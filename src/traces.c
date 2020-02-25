@@ -298,39 +298,20 @@ struct _trace_t
 };
 
 trace_t *
-trace_new (instr_t *instr)
-{
-  trace_t *t = malloc (sizeof (trace_t));
-  if (!t)
-    return NULL;
-
-  if (!t)
-    {
-      t->instr = instr;
-      t->next = NULL;
-    }
-  else
-    t = NULL;
-
-  return t;
-}
-
-trace_t *
 trace_insert (trace_t *t, instr_t *instr)
 {
-  if (!t)
+  if (!instr)
     {
       errno = EINVAL;
       return NULL;
     }
 
-  trace_t *new = trace_new (instr);
+  trace_t *new = malloc (sizeof (trace_t));
   if (!new)
     return NULL;
 
-  if (t->next)
-    new->next = t->next;
-  t->next = new;
+  new->instr = instr;
+  new->next = t;
 
   return new;
 }
@@ -354,11 +335,14 @@ trace_delete (trace_t *t)
 trace_t *
 trace_compare (trace_t *t1, trace_t *t2)
 {
-  if (!t1 || !t2)
+  if (!t1)
     {
-      errno = EINVAL;
-      return NULL;
+      if (!t2)
+	errno = EINVAL;
+      return t2;
     }
+  else if (!t2)
+    return t1;
 
   trace_t *tmp1 = t1;
   trace_t *tmp2 = t2;
