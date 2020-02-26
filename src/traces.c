@@ -25,7 +25,7 @@ struct _instr_t
 };
 
 instr_t *
-instr_new (const uintptr_t addr, const uint8_t size, const uint8_t *opcodes)
+instr_new (const uintptr_t addr, const uint8_t size, const uint8_t *const opcodes)
 {
   /* Check size != 0 and opcodes != NULL */
   if (size == 0 || opcodes == NULL)
@@ -187,7 +187,7 @@ hashtable_delete (hashtable_t *ht)
 }
 
 bool
-hashtable_insert (hashtable_t *ht, instr_t *instr)
+hashtable_insert (hashtable_t *const ht, instr_t *const instr)
 {
   if (ht == NULL || instr == NULL)
     {
@@ -237,9 +237,9 @@ hashtable_insert (hashtable_t *ht, instr_t *instr)
 }
 
 bool
-hashtable_lookup (hashtable_t *ht, instr_t *instr)
+hashtable_lookup (hashtable_t *const ht, instr_t *const instr)
 {
-  if (!ht)
+  if (!ht || !instr)
     {
       errno = EINVAL;
       return false;
@@ -268,13 +268,13 @@ hashtable_lookup (hashtable_t *ht, instr_t *instr)
 }
 
 size_t
-hashtable_entries (hashtable_t *ht)
+hashtable_entries (hashtable_t *const ht)
 {
   return ht->entries;
 }
 
 size_t
-hashtable_collisions (hashtable_t *ht)
+hashtable_collisions (const hashtable_t *const ht)
 {
   return ht->collisions;
 }
@@ -332,31 +332,26 @@ trace_delete (trace_t *t)
   free (t);
 }
 
-trace_t *
+size_t
 trace_compare (trace_t *t1, trace_t *t2)
 {
+  /* Checking border cases */
   if (!t1)
-    {
-      if (!t2)
-	errno = EINVAL;
-      return t2;
-    }
+    return !!t2;
   else if (!t2)
-    return t1;
+    return 1;
 
+  /* Checking differences */
+  size_t count = 0;
   trace_t *tmp1 = t1;
   trace_t *tmp2 = t2;
-  while (tmp1->instr == tmp2->instr)
+  while (tmp1 && tmp2 && tmp1->instr == tmp2->instr)
     {
       tmp1 = tmp1->next;
       tmp2 = tmp2->next;
-
-      if (!tmp1)
-	return tmp2;
-
-      if (!tmp2)
-	return NULL;
+      count++;
     }
 
-  return tmp2;
+  /* Both traces are equals */
+  return (tmp1->instr == tmp2->instr) ? 0 : count;
 }

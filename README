@@ -35,6 +35,10 @@ Build the software and run the tests (buildtype: 'debug' or 'debugoptimized'):
 #> ninja
 #> ninja test
 
+Run valgrind on the tests:
+
+#> meson test --wrap='valgrind --leak-check=full --track-origins=yes --error-exitcode=1'
+
 Having the tests with code coverage:
 
 #> cd tracker/

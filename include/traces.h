@@ -25,7 +25,7 @@ typedef struct _instr_t instr_t;
 
 /* Return a new instr_t struct, NULL otherwise (and set errno) */
 instr_t *instr_new (const uintptr_t addr, const uint8_t size,
-		    const uint8_t *opcodes);
+		    const uint8_t * const opcodes);
 
 /* Delete the assembly instruction from memory */
 void instr_delete (instr_t *instr);
@@ -55,19 +55,19 @@ void hashtable_delete (hashtable_t *ht);
 
 /* Insert the instruction in the hashtable, returns true if insertion is
    successful, false if instruction was already here or a problem occured */
-bool hashtable_insert (hashtable_t *ht, instr_t *instr);
+bool hashtable_insert (hashtable_t *const ht, instr_t *const instr);
 
 /* Look-up if current instruction is already in the hashtable */
-bool hashtable_lookup (hashtable_t *ht, instr_t *instr);
+bool hashtable_lookup (hashtable_t *const ht, instr_t *const instr);
 
 /* Count the number of entries in the hashtable */
-size_t hashtable_entries (hashtable_t *ht);
+size_t hashtable_entries (hashtable_t *const ht);
 
 /* Count the number of collisions in the hashtable */
-size_t hashtable_collisions (hashtable_t *ht);
+size_t hashtable_collisions (const hashtable_t *ht);
 
 /* Count the number of non empty buckets in the hashtable */
-size_t hashtable_filled_buckets (hashtable_t *ht);
+size_t hashtable_filled_buckets (const hashtable_t *ht);
 
 /* ***** Execution trace ***** */
 
@@ -80,8 +80,8 @@ trace_t *trace_insert (trace_t *t, instr_t *instr);
 /* Free every element in the trace t */
 void trace_delete (trace_t *t);
 
-/* Returns the first element where t1 and t2 differs, NULL otherwise */
-trace_t *trace_compare (trace_t *t1, trace_t *t2);
+/* Returns 0 if the traces matches or the index > 0 from which it differs */
+size_t trace_compare (const trace_t *t1, const trace_t *t2);
 
 /* ***** Execution control-flow graph ***** */
 

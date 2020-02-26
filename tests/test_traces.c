@@ -19,6 +19,8 @@
 
 #include "traces.h"
 
+#include <stdio.h>
+
 static void
 instr_test (__attribute__ ((unused)) void **state)
 {
@@ -73,6 +75,9 @@ hashtable_test (__attribute__ ((unused)) void **state)
   hashtable_t *ht = hashtable_new (ht_size);
   assert_non_null (ht);
 
+  /* First lookup on an empty hashtable */
+  assert_false (hashtable_lookup (ht, instr1));
+
   /* Insert null parameters */
   assert_false (hashtable_insert (NULL, instr1));
   assert_false (hashtable_insert (ht, NULL));
@@ -99,6 +104,7 @@ hashtable_test (__attribute__ ((unused)) void **state)
 
   /* Testing hashtable_lookup */
   assert_false (hashtable_lookup (NULL, instr1));
+  assert_false (hashtable_lookup (ht, NULL));
 
   assert_true (hashtable_lookup (ht, instr1));
   assert_true (hashtable_lookup (ht, instr2));
@@ -116,10 +122,7 @@ hashtable_test (__attribute__ ((unused)) void **state)
   /* Cleaning current hashtable */
   hashtable_delete (ht);
 
-  /* Testing on empty hashtable */
-  ht = hashtable_new (ht_size);
-  assert_false (hashtable_lookup (ht, instr1));
-  hashtable_delete (ht);
+  instr_delete (instr11);
 
   /* Testing border cases */
   ht = hashtable_new (0);
@@ -164,13 +167,42 @@ trace_test (__attribute__ ((unused)) void **state)
   tr = trace_insert (tr, instr9);
   tr = trace_insert (tr, instr10);
 
-  assert_null (trace_compare (tr, tr));
-  assert_true (trace_compare (NULL, tr) == tr);
-  assert_true (trace_compare (tr, NULL) == tr);
-  assert_true (trace_compare (NULL, NULL) == NULL && errno == EINVAL);
+  printf("trace_compare(tr, tr) == %zu\n", trace_compare (tr, tr));
+  assert_true (trace_compare (tr, tr) == 0);
+  assert_true (trace_compare (NULL, NULL) == 0);
+  assert_true (trace_compare (NULL, tr) == 1);
+  assert_true (trace_compare (tr, NULL) == 1);
 
-  trace_delete (tr);
+  trace_t *tr2 = trace_insert (NULL, instr11);
+  assert_non_null (tr2);
+
+  assert_null (trace_insert(tr2, NULL));
+
+  tr2 = trace_insert (tr2, instr2);
+  tr2 = trace_insert (tr2, instr3);
+  tr2 = trace_insert (tr2, instr4);
+  tr2 = trace_insert (tr2, instr5);
+  tr2 = trace_insert (tr2, instr6);
+  tr2 = trace_insert (tr2, instr7);
+  tr2 = trace_insert (tr2, instr8);
+  tr2 = trace_insert (tr2, instr9);
+  tr2 = trace_insert (tr2, instr10);
+  assert_true (trace_compare (tr, tr2) == 10);
+
   trace_delete (NULL);
+  trace_delete (tr);
+
+  instr_delete (instr1);
+  instr_delete (instr2);
+  instr_delete (instr3);
+  instr_delete (instr4);
+  instr_delete (instr5);
+  instr_delete (instr6);
+  instr_delete (instr7);
+  instr_delete (instr8);
+  instr_delete (instr9);
+  instr_delete (instr10);
+  instr_delete (instr11);
 }
 
 int
