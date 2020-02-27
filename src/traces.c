@@ -16,6 +16,8 @@
 
 /* **********[ Instruction Data-structure ]********** */
 
+typedef enum { INSTR, BRANCH, CALL, JMP } instr_type_t;
+
 struct _instr_t
 {
   uintptr_t address; /* Address where lies the instruction */
@@ -280,7 +282,7 @@ hashtable_collisions (const hashtable_t *const ht)
 }
 
 size_t
-hashtable_filled_buckets (hashtable_t *ht)
+hashtable_filled_buckets (const hashtable_t * const ht)
 {
   size_t count = 0;
   for (size_t index = 0; index < ht->size; index++)
@@ -291,67 +293,68 @@ hashtable_filled_buckets (hashtable_t *ht)
 
 /* **********[ Trace Data-structure ]********** */
 
+typedef struct tnode_t
+{
+  instr_t *instr;
+  struct tnode_t *next;
+} tnode_t;
+
 struct _trace_t
 {
-  instr_t *instr; /* Pointer to the current instruction */
-  trace_t *next;  /* Pointer to the next value in the list */
+  tnode_t *head;
+  tnode_t *tail;
 };
 
 trace_t *
-trace_insert (trace_t *t, instr_t *instr)
+trace_new (instr_t * const instr)
 {
-  if (!instr)
+  trace_t *t = malloc (sizeof (trace_t));
+  if (!t)
+    return NULL;
+
+  /* Create the first node */
+  tnode_t *n = malloc (sizeof (tnode_t));
+  if (!n)
     {
-      errno = EINVAL;
+      free (t);
       return NULL;
     }
 
-  trace_t *new = malloc (sizeof (trace_t));
-  if (!new)
-    return NULL;
+  /* Set the node */
+  n->instr = instr;
+  n->next = NULL;
 
-  new->instr = instr;
-  new->next = t;
+  /* Set the trace structure */
+  t->head = n;
+  t->tail = n;
 
-  return new;
+  return t;
 }
 
 void
 trace_delete (trace_t *t)
 {
-  if (!t)
+  if (!t || !t->head)
     return;
 
-  trace_t *tmp = t;
-  while (tmp->next)
+  tnode_t *node = t->head;
+  while (node->next)
     {
-      tmp = tmp->next;
-      free (t);
-      t = tmp;
+      tnode_t *next_node = node->next;
+      free (node);
+      node = next_node;
     }
   free (t);
 }
 
-size_t
-trace_compare (trace_t *t1, trace_t *t2)
+int
+trace_append (trace_t * const t, instr_t * const instr)
 {
-  /* Checking border cases */
-  if (!t1)
-    return !!t2;
-  else if (!t2)
-    return 1;
-
-  /* Checking differences */
-  size_t count = 0;
-  trace_t *tmp1 = t1;
-  trace_t *tmp2 = t2;
-  while (tmp1 && tmp2 && tmp1->instr == tmp2->instr)
+  if (!t || !instr)
     {
-      tmp1 = tmp1->next;
-      tmp2 = tmp2->next;
-      count++;
+      errno = EINVAL;
+      return -1;
     }
 
-  /* Both traces are equals */
-  return (tmp1->instr == tmp2->instr) ? 0 : count;
+  return 0;
 }

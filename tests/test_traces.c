@@ -152,46 +152,6 @@ trace_test (__attribute__ ((unused)) void **state)
 	  *instr10 = instr_new (0xeeeeeeee, 10, opcodes6),
 	  *instr11 = instr_new (0xdddddddd, 4, opcodes6);
 
-  trace_t *tr = trace_insert (NULL, instr1);
-  assert_non_null (tr);
-
-  assert_null (trace_insert(tr, NULL));
-
-  tr = trace_insert (tr, instr2);
-  tr = trace_insert (tr, instr3);
-  tr = trace_insert (tr, instr4);
-  tr = trace_insert (tr, instr5);
-  tr = trace_insert (tr, instr6);
-  tr = trace_insert (tr, instr7);
-  tr = trace_insert (tr, instr8);
-  tr = trace_insert (tr, instr9);
-  tr = trace_insert (tr, instr10);
-
-  printf("trace_compare(tr, tr) == %zu\n", trace_compare (tr, tr));
-  assert_true (trace_compare (tr, tr) == 0);
-  assert_true (trace_compare (NULL, NULL) == 0);
-  assert_true (trace_compare (NULL, tr) == 1);
-  assert_true (trace_compare (tr, NULL) == 1);
-
-  trace_t *tr2 = trace_insert (NULL, instr11);
-  assert_non_null (tr2);
-
-  assert_null (trace_insert(tr2, NULL));
-
-  tr2 = trace_insert (tr2, instr2);
-  tr2 = trace_insert (tr2, instr3);
-  tr2 = trace_insert (tr2, instr4);
-  tr2 = trace_insert (tr2, instr5);
-  tr2 = trace_insert (tr2, instr6);
-  tr2 = trace_insert (tr2, instr7);
-  tr2 = trace_insert (tr2, instr8);
-  tr2 = trace_insert (tr2, instr9);
-  tr2 = trace_insert (tr2, instr10);
-  assert_true (trace_compare (tr, tr2) == 10);
-
-  trace_delete (NULL);
-  trace_delete (tr);
-
   instr_delete (instr1);
   instr_delete (instr2);
   instr_delete (instr3);

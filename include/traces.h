@@ -67,21 +67,24 @@ size_t hashtable_entries (hashtable_t *const ht);
 size_t hashtable_collisions (const hashtable_t *ht);
 
 /* Count the number of non empty buckets in the hashtable */
-size_t hashtable_filled_buckets (const hashtable_t *ht);
+size_t hashtable_filled_buckets (const hashtable_t * const ht);
 
 /* ***** Execution trace ***** */
 
 typedef struct _trace_t trace_t;
 
-/* Append an instr on the top of the trace t (or create a new trace if
- * t == NULL) and returns a pointer to the new trace top or NULL otherwise */
-trace_t *trace_insert (trace_t *t, instr_t *instr);
+/* Create a new trace_t structure with a unique instruction */
+trace_t *trace_new (instr_t * const instr);
 
 /* Free every element in the trace t */
 void trace_delete (trace_t *t);
 
+int trace_append (trace_t * const t, instr_t * const instr);
+instr_t *trace_get (trace_t * const t, size_t index);
+size_t trace_length (trace_t * const t);
+
 /* Returns 0 if the traces matches or the index > 0 from which it differs */
-size_t trace_compare (const trace_t *t1, const trace_t *t2);
+size_t trace_compare (trace_t * const t1, trace_t * const t2);
 
 /* ***** Execution control-flow graph ***** */
 
