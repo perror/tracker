@@ -21,7 +21,7 @@ typedef enum { INSTR, BRANCH, CALL, JMP } instr_type_t;
 struct _instr_t
 {
   uintptr_t address; /* Address where lies the instruction */
-  // uint8_t type;   /* 0 = instr, 1 = branch, 2 = call, 3 = jmp */
+  instr_type_t type; /* Instruction type */
   uint8_t size;	     /* Opcode size */
   uint8_t opcodes[]; /* Instruction opcode */
 };
@@ -37,7 +37,7 @@ instr_new (const uintptr_t addr, const uint8_t size, const uint8_t *const opcode
     }
 
   instr_t *instr = malloc (sizeof (instr_t) + size * sizeof (uint8_t));
-  if (!instr)
+  if (instr == NULL)
     return NULL;
 
   instr->address = addr;
@@ -155,7 +155,7 @@ hashtable_new (const size_t size)
     }
 
   hashtable_t *ht = malloc (sizeof (hashtable_t) + size * sizeof (instr_t *));
-  if (!ht)
+  if (ht == NULL)
     return NULL;
 
   /* Initialize to zero */
@@ -225,7 +225,7 @@ hashtable_insert (hashtable_t *const ht, instr_t *const instr)
     }
 
   instr_t **new_bucket = calloc (k + 2, sizeof (instr_t *));
-  if (!new_bucket)
+  if (new_bucket == NULL)
     return false;
 
   ht->collisions++;
@@ -241,7 +241,7 @@ hashtable_insert (hashtable_t *const ht, instr_t *const instr)
 bool
 hashtable_lookup (hashtable_t *const ht, instr_t *const instr)
 {
-  if (!ht || !instr)
+  if (ht == NULL || instr == NULL)
     {
       errno = EINVAL;
       return false;
@@ -306,54 +306,116 @@ struct _trace_t
 };
 
 trace_t *
-trace_new (instr_t * const instr)
+trace_new (void)
 {
-  trace_t *t = malloc (sizeof (trace_t));
-  if (!t)
+  trace_t *tr = malloc (sizeof (trace_t));
+  if (tr == NULL)
     return NULL;
 
-  /* Create the first node */
-  tnode_t *n = malloc (sizeof (tnode_t));
-  if (!n)
-    {
-      free (t);
-      return NULL;
-    }
-
-  /* Set the node */
-  n->instr = instr;
-  n->next = NULL;
-
   /* Set the trace structure */
-  t->head = n;
-  t->tail = n;
+  tr->head = NULL;
+  tr->tail = NULL;
 
-  return t;
+  return tr;
 }
 
 void
-trace_delete (trace_t *t)
+trace_delete (trace_t *tr)
 {
-  if (!t || !t->head)
+  if (tr == NULL || tr->head == NULL || tr->tail == NULL)
     return;
 
-  tnode_t *node = t->head;
+  tnode_t *node = tr->head;
   while (node->next)
     {
       tnode_t *next_node = node->next;
       free (node);
       node = next_node;
     }
-  free (t);
+  free (tr);
 }
 
 int
-trace_append (trace_t * const t, instr_t * const instr)
+trace_append (trace_t * const tr, instr_t * const instr)
 {
-  if (!t || !instr)
+  if (tr == NULL || instr == NULL)
     {
       errno = EINVAL;
       return -1;
+    }
+
+  /* Create the new node */
+  tnode_t *node = malloc (sizeof (tnode_t));
+  if (node == NULL)
+    return -1;
+
+  node->instr = instr;
+  node-> next = NULL;
+
+  /* No node are present yet */
+  if (tr->head == NULL)
+    {
+      tr->head = node;
+      tr->tail = node;
+
+      goto end;
+    }
+
+  /* Nominal case */
+  tr->tail->next = node;
+  tr->tail = node;
+
+ end:
+  return 0;
+}
+
+instr_t *
+trace_get (trace_t * const t, size_t index)
+{
+  if (t == NULL)
+    {
+      errno = EINVAL;
+      return NULL;
+    }
+
+  size_t k = 0;
+  tnode_t *current = t->head;
+
+  while (k < index)
+    {
+      k++;
+      current = current->next;
+      if (current == NULL)
+	return NULL;
+    }
+  return current->instr;
+}
+
+size_t
+trace_compare (trace_t * const t1, trace_t * const t2)
+{
+  if (t1 == NULL || t2 == NULL)
+    {
+      errno = EINVAL;
+      return 0;
+    }
+
+  /* Special cases when one of the trace is empty */
+  if (t1->head == NULL)
+    return (t2->head != NULL);
+  else if (t2->head == NULL)
+    return 0;
+
+  size_t count = 0;
+  tnode_t * n1 = t1->head, *n2 = t2->head;
+  while (n1->instr == n2->instr || (n1->next == NULL && n2->next == NULL))
+    {
+      n1 = n1->next;
+      n2 = n2->next;
+      count++;
+
+      if (n1 == NULL || n2 == NULL)
+	return count;
     }
 
   return 0;

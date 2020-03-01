@@ -74,14 +74,14 @@ size_t hashtable_filled_buckets (const hashtable_t * const ht);
 typedef struct _trace_t trace_t;
 
 /* Create a new trace_t structure with a unique instruction */
-trace_t *trace_new (instr_t * const instr);
+trace_t *trace_new (void);
 
 /* Free every element in the trace t */
-void trace_delete (trace_t *t);
+void trace_delete (trace_t *tr);
 
-int trace_append (trace_t * const t, instr_t * const instr);
-instr_t *trace_get (trace_t * const t, size_t index);
-size_t trace_length (trace_t * const t);
+int trace_append (trace_t * const tr, instr_t * const instr);
+instr_t *trace_get (trace_t * const tr, size_t index);
+size_t trace_length (trace_t * const tr);
 
 /* Returns 0 if the traces matches or the index > 0 from which it differs */
 size_t trace_compare (trace_t * const t1, trace_t * const t2);

@@ -152,6 +152,47 @@ trace_test (__attribute__ ((unused)) void **state)
 	  *instr10 = instr_new (0xeeeeeeee, 10, opcodes6),
 	  *instr11 = instr_new (0xdddddddd, 4, opcodes6);
 
+  trace_t *tr = trace_new ();
+  assert_non_null (tr);
+  trace_delete (tr); /* Delete an empty trace */
+
+  tr = trace_new ();
+  assert_non_null (tr);
+
+  assert_true (trace_append (NULL, instr1) == -1 && errno == EINVAL);
+  assert_true (trace_append (tr, NULL) == -1 && errno == EINVAL);
+
+  trace_append (tr, instr1);
+  trace_delete (tr); /* Delete a trace with only one instruction */
+
+  tr = trace_new ();
+  assert_non_null (tr);
+
+  trace_append (tr, instr1);
+  trace_append (tr, instr2);
+  trace_append (tr, instr3);
+
+  assert_true (trace_get (NULL, 0) == NULL && errno == EINVAL);
+  assert_true (trace_get (tr, 0) == instr1);
+  assert_true (trace_get (tr, 1) == instr2);
+  assert_true (trace_get (tr, 2) == instr3);
+  assert_true (trace_get (tr, 3) == NULL);
+
+  trace_t *tr2 = trace_new ();
+  assert_non_null (tr2);
+
+  trace_append (tr2, instr1);
+  trace_append (tr2, instr2);
+  trace_append (tr2, instr3);
+
+  assert_true (trace_compare (NULL, tr) == 0 && errno == EINVAL);
+  assert_true (trace_compare (tr, NULL) == 0 && errno == EINVAL);
+  assert_true (trace_compare (tr, tr2) == 0);
+
+  trace_delete (tr);
+  trace_delete (tr2);
+  trace_delete (NULL);
+
   instr_delete (instr1);
   instr_delete (instr2);
   instr_delete (instr3);

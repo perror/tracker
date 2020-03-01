@@ -41,7 +41,7 @@ executable_new (char *execfilename)
 
   /* Check if given file is an executable and discover its architecture */
   FILE *execfile = fopen (execfilename, "rb");
-  if (!execfile)
+  if (execfile == NULL)
     err (EXIT_FAILURE, "error: '%s'", execfilename);
 
   /* Open file */
