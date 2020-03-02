@@ -1,0 +1,20 @@
+			 Ideas for future development
+			 ============================
+
+
+Better trace_t structure
+------------------------
+
+#define TNODE_SIZE 1ULL << 8
+    
+typedef struct tnode_t
+{
+  instr_t *instr[TNODE_SIZE];
+  struct tnode_t *next;
+} tnode_t;
+    
+It should reduce the number of calls to malloc() and the size of the whole
+structure in memory. We first fill the array with NULL (search for the last
+non empty element is performed by dichotomic search).
+
+But, a lot of the API for trace_t must be slightly adapted.
