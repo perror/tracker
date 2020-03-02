@@ -172,22 +172,38 @@ trace_test (__attribute__ ((unused)) void **state)
   trace_append (tr, instr2);
   trace_append (tr, instr3);
 
+  assert_true (trace_length (NULL) == 0 && errno == EINVAL);
+  assert_true (trace_length (tr) == 3);
+
   assert_true (trace_get (NULL, 0) == NULL && errno == EINVAL);
-  assert_true (trace_get (tr, 0) == instr1);
-  assert_true (trace_get (tr, 1) == instr2);
-  assert_true (trace_get (tr, 2) == instr3);
-  assert_true (trace_get (tr, 3) == NULL);
+  assert_true (trace_get (tr, 0) == NULL && errno == EINVAL);
+  assert_true (trace_get (tr, 1) == instr1);
+  assert_true (trace_get (tr, 2) == instr2);
+  assert_true (trace_get (tr, 3) == instr3);
+  assert_true (trace_get (tr, 4) == NULL);
+  assert_true (trace_get (tr, 15) == NULL);
 
   trace_t *tr2 = trace_new ();
   assert_non_null (tr2);
+
+  assert_true (trace_compare (tr, tr2) == 1);
+  assert_true (trace_compare (tr2, tr) == 1);
 
   trace_append (tr2, instr1);
   trace_append (tr2, instr2);
   trace_append (tr2, instr3);
 
-  assert_true (trace_compare (NULL, tr) == 0 && errno == EINVAL);
-  assert_true (trace_compare (tr, NULL) == 0 && errno == EINVAL);
+  assert_true (trace_compare (NULL, tr) == 1 && errno == EINVAL);
+  assert_true (trace_compare (tr, NULL) == 1 && errno == EINVAL);
   assert_true (trace_compare (tr, tr2) == 0);
+
+  trace_append (tr2, instr4);
+  assert_true (trace_compare (tr, tr2) == 4);
+  assert_true (trace_compare (tr2, tr) == 4);
+
+  trace_append (tr, instr5);
+  assert_true (trace_compare (tr, tr2) == 4);
+  assert_true (trace_compare (tr2, tr) == 4);
 
   trace_delete (tr);
   trace_delete (tr2);

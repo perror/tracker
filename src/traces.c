@@ -370,18 +370,18 @@ trace_append (trace_t * const tr, instr_t * const instr)
 }
 
 instr_t *
-trace_get (trace_t * const t, size_t index)
+trace_get (trace_t * const tr, const size_t index)
 {
-  if (t == NULL)
+  if (tr == NULL || index < 1)
     {
       errno = EINVAL;
       return NULL;
     }
 
   size_t k = 0;
-  tnode_t *current = t->head;
+  tnode_t *current = tr->head;
 
-  while (k < index)
+  while (k < index - 1)
     {
       k++;
       current = current->next;
@@ -392,31 +392,51 @@ trace_get (trace_t * const t, size_t index)
 }
 
 size_t
-trace_compare (trace_t * const t1, trace_t * const t2)
+trace_length (trace_t * const tr)
 {
-  if (t1 == NULL || t2 == NULL)
+  if (tr == NULL)
     {
       errno = EINVAL;
       return 0;
     }
+  size_t length = 0;
+  tnode_t *node = tr->head;
+  while (node != NULL)
+    {
+      node = node->next;
+      length++;
+    }
+  return length;
+}
+
+size_t
+trace_compare (trace_t * const t1, trace_t * const t2)
+{
+  size_t count = 1;
+
+  if (t1 == NULL || t2 == NULL)
+    {
+      errno = EINVAL;
+      return 1;
+    }
 
   /* Special cases when one of the trace is empty */
-  if (t1->head == NULL)
-    return (t2->head != NULL);
-  else if (t2->head == NULL)
-    return 0;
+  if (t1->head == NULL || t2->head == NULL)
+    return count;
 
-  size_t count = 0;
   tnode_t * n1 = t1->head, *n2 = t2->head;
-  while (n1->instr == n2->instr || (n1->next == NULL && n2->next == NULL))
+  while (n1->instr == n2->instr)
     {
       n1 = n1->next;
       n2 = n2->next;
       count++;
 
+      if (n1 == NULL && n2 == NULL)
+	return 0;
+
       if (n1 == NULL || n2 == NULL)
-	return count;
+	break;
     }
 
-  return 0;
+  return count;
 }

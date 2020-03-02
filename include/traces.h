@@ -76,11 +76,17 @@ typedef struct _trace_t trace_t;
 /* Create a new trace_t structure with a unique instruction */
 trace_t *trace_new (void);
 
-/* Free every element in the trace t */
+/* Free all the trace tr */
 void trace_delete (trace_t *tr);
 
+/* Append the instruction instr to the tail of the trace,
+ * returns 0 if everything went well and -1 otherwise */
 int trace_append (trace_t * const tr, instr_t * const instr);
-instr_t *trace_get (trace_t * const tr, size_t index);
+
+/* Returns the i-th element of the trace (starts at 1) and NULL on error */
+instr_t *trace_get (trace_t * const tr, const size_t index);
+
+/* Returns trace length */
 size_t trace_length (trace_t * const tr);
 
 /* Returns 0 if the traces matches or the index > 0 from which it differs */
