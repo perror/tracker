@@ -25,7 +25,7 @@ typedef struct _instr_t instr_t;
 
 /* Return a new instr_t struct, NULL otherwise (and set errno) */
 instr_t *instr_new (const uintptr_t addr, const uint8_t size,
-		    const uint8_t * const opcodes);
+		    const uint8_t *const opcodes);
 
 /* Delete the assembly instruction from memory */
 void instr_delete (instr_t *instr);
@@ -67,7 +67,7 @@ size_t hashtable_entries (hashtable_t *const ht);
 size_t hashtable_collisions (const hashtable_t *ht);
 
 /* Count the number of non empty buckets in the hashtable */
-size_t hashtable_filled_buckets (const hashtable_t * const ht);
+size_t hashtable_filled_buckets (const hashtable_t *const ht);
 
 /* ***** Execution trace ***** */
 
@@ -81,16 +81,16 @@ void trace_delete (trace_t *tr);
 
 /* Append the instruction instr to the tail of the trace,
  * returns 0 if everything went well and -1 otherwise */
-int trace_append (trace_t * const tr, instr_t * const instr);
+int trace_append (trace_t *const tr, instr_t *const instr);
 
 /* Returns the i-th element of the trace (starts at 1) and NULL on error */
-instr_t *trace_get (trace_t * const tr, const size_t index);
+instr_t *trace_get (trace_t *const tr, const size_t index);
 
 /* Returns trace length */
-size_t trace_length (trace_t * const tr);
+size_t trace_length (trace_t *const tr);
 
 /* Returns 0 if the traces matches or the index > 0 from which it differs */
-size_t trace_compare (trace_t * const t1, trace_t * const t2);
+size_t trace_compare (trace_t *const t1, trace_t *const t2);
 
 /* ***** Execution control-flow graph ***** */
 

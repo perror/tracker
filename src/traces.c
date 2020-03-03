@@ -27,7 +27,8 @@ struct _instr_t
 };
 
 instr_t *
-instr_new (const uintptr_t addr, const uint8_t size, const uint8_t *const opcodes)
+instr_new (const uintptr_t addr, const uint8_t size,
+	   const uint8_t *const opcodes)
 {
   /* Check size != 0 and opcodes != NULL */
   if (size == 0 || opcodes == NULL)
@@ -282,7 +283,7 @@ hashtable_collisions (const hashtable_t *const ht)
 }
 
 size_t
-hashtable_filled_buckets (const hashtable_t * const ht)
+hashtable_filled_buckets (const hashtable_t *const ht)
 {
   size_t count = 0;
   for (size_t index = 0; index < ht->size; index++)
@@ -336,7 +337,7 @@ trace_delete (trace_t *tr)
 }
 
 int
-trace_append (trace_t * const tr, instr_t * const instr)
+trace_append (trace_t *const tr, instr_t *const instr)
 {
   if (tr == NULL || instr == NULL)
     {
@@ -350,7 +351,7 @@ trace_append (trace_t * const tr, instr_t * const instr)
     return -1;
 
   node->instr = instr;
-  node-> next = NULL;
+  node->next = NULL;
 
   /* No node are present yet */
   if (tr->head == NULL)
@@ -365,12 +366,12 @@ trace_append (trace_t * const tr, instr_t * const instr)
   tr->tail->next = node;
   tr->tail = node;
 
- end:
+end:
   return 0;
 }
 
 instr_t *
-trace_get (trace_t * const tr, const size_t index)
+trace_get (trace_t *const tr, const size_t index)
 {
   if (tr == NULL || index < 1)
     {
@@ -392,7 +393,7 @@ trace_get (trace_t * const tr, const size_t index)
 }
 
 size_t
-trace_length (trace_t * const tr)
+trace_length (trace_t *const tr)
 {
   if (tr == NULL)
     {
@@ -410,7 +411,7 @@ trace_length (trace_t * const tr)
 }
 
 size_t
-trace_compare (trace_t * const t1, trace_t * const t2)
+trace_compare (trace_t *const t1, trace_t *const t2)
 {
   size_t count = 1;
 
@@ -424,7 +425,7 @@ trace_compare (trace_t * const t1, trace_t * const t2)
   if (t1->head == NULL || t2->head == NULL)
     return count;
 
-  tnode_t * n1 = t1->head, *n2 = t2->head;
+  tnode_t *n1 = t1->head, *n2 = t2->head;
   while (n1->instr == n2->instr)
     {
       n1 = n1->next;
